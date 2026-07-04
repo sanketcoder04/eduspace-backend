@@ -1,0 +1,12 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://YOUR_DEV_DATABASE
+
+logging:
+  level:
+    root: INFO
+    com.sanket.eduspace: INFO
+
+app:
+  frontend-url: https://dev.eduspace.com
