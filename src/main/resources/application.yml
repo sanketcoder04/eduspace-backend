@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: EduSpace
+
+  profiles:
+    active: local
+
+server:
+  port: 3031
+
+application:
+  name: EduSpace
+  version: 1.0.0

@@ -1,0 +1,28 @@
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+
+  mail:
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+
+jwt:
+  secret-key: ${JWT_SECRET}
+  access-token-expiration: 900000
+  refresh-token-expiration: 2592000000
+
+logging:
+  level:
+    root: WARN
+
+app:
+  frontend-url: https://eduspace.com
