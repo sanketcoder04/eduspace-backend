@@ -1,4 +1,4 @@
-package com.example.eduspace.controller;
+package com.example.eduspace;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +27,10 @@ public class TestController {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @GetMapping("/")
+    public String greet() {
+        return "Welcome to Edu Hub";
+    }
 
     @GetMapping("/test")
     public String test() {
