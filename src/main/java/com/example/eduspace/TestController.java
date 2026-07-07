@@ -1,12 +1,14 @@
 package com.example.eduspace;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/api/v1/auth")
 public class TestController {
 
     @Value("${spring.data.mongodb.uri}")
@@ -27,6 +29,9 @@ public class TestController {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @GetMapping("/")
     public String greet() {
         return "Welcome to Edu Hub";
@@ -40,5 +45,10 @@ public class TestController {
                 "Google Client ID: " + clientId + "\n" +
                 "Google Client Secret: " + clientSecret + "\n" +
                 "JWT Secret: " + jwtSecret;
+    }
+
+    @GetMapping("/enable")
+    public String getEncodedPassword() {
+        return passwordEncoder.encode("Abc@123");
     }
 }
