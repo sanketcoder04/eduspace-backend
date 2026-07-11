@@ -60,4 +60,9 @@ public class TestController {
     public String manager() {
         return authenticationManager.toString();
     }
+
+    @GetMapping("/authenticate")
+    public String hello() {
+        return "Authenticated";
+    }
 }
