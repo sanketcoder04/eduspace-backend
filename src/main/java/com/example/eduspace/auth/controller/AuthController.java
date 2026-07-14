@@ -1,8 +1,10 @@
 package com.example.eduspace.auth.controller;
 
+import com.example.eduspace.auth.dto.request.LoginRequest;
 import com.example.eduspace.auth.dto.request.RegisterRequest;
 import com.example.eduspace.auth.dto.request.ResendOtpRequest;
 import com.example.eduspace.auth.dto.request.VerifyEmailRequest;
+import com.example.eduspace.auth.dto.response.AuthResponse;
 import com.example.eduspace.auth.dto.response.GenericMessageResponse;
 import com.example.eduspace.auth.service.AuthService;
 import com.example.eduspace.common.dto.ApiResponse;
@@ -53,6 +55,19 @@ public class AuthController {
                 ApiResponse.<GenericMessageResponse>builder()
                         .success(true)
                         .message(response.getMessage())
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<AuthResponse>builder()
+                        .success(true)
+                        .message("Login successful.")
                         .data(response)
                         .build()
         );

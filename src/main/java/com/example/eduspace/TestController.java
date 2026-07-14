@@ -1,8 +1,11 @@
 package com.example.eduspace;
 
+import com.example.eduspace.security.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,6 +39,9 @@ public class TestController {
     @Autowired
     AuthenticationManager authenticationManager;
 
+    @Autowired
+    JwtService jwtService;
+
     @GetMapping("/")
     public String greet() {
         return "Welcome to Edu Hub";
@@ -64,5 +70,16 @@ public class TestController {
     @GetMapping("/authenticate")
     public String hello() {
         return "Authenticated";
+    }
+
+    @GetMapping("/jwt-test")
+    public String jwtTest() {
+        UserDetails user = User
+                .withUsername("sanket@gmail.com")
+                .password("")
+                .roles("STUDENT")
+                .build();
+
+        return jwtService.generateAccessToken(user);
     }
 }

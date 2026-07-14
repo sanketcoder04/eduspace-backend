@@ -22,5 +22,16 @@ public interface AuthMapper {
     @Mapping(target = "updatedAt", ignore = true)
     User toUser(RegisterRequest request);
 
-    UserResponse toUserResponse(User user);
+    default UserResponse toUserResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .emailVerified(user.isEmailVerified())
+                .lastLoginAt(user.getLastLoginAt())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
 }
