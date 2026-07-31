@@ -1,7 +1,6 @@
 package com.example.eduspace.verification.entity;
 
 import com.example.eduspace.common.entity.BaseEntity;
-import com.example.eduspace.user.entity.User;
 import com.example.eduspace.verification.enums.VerificationType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +9,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
+
 import java.time.Instant;
 
 @Getter
@@ -23,7 +25,8 @@ public class VerificationToken extends BaseEntity {
     @Id
     private String id;
 
-    private User user;
+    @Field(targetType = FieldType.OBJECT_ID)
+    private String userId;
 
     private String token;
 

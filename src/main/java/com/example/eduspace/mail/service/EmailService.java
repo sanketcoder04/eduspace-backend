@@ -30,4 +30,19 @@ public class EmailService {
             throw new RuntimeException("Unable to send verification email.", e);
         }
     }
+
+    public void sendPasswordResetOtp(String email, String name, String otp) {
+        MimeMessage message = mailSender.createMimeMessage();
+
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setTo(email);
+            helper.setSubject("Reset Your EduSpace Password");
+            helper.setText(EmailTemplateBuilder.buildPasswordResetOtpEmail(name, otp), true);
+            mailSender.send(message);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send reset password email.", e);
+        }
+    }
 }

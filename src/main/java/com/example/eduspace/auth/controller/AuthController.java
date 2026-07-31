@@ -1,11 +1,10 @@
 package com.example.eduspace.auth.controller;
 
-import com.example.eduspace.auth.dto.request.LoginRequest;
-import com.example.eduspace.auth.dto.request.RegisterRequest;
-import com.example.eduspace.auth.dto.request.ResendOtpRequest;
-import com.example.eduspace.auth.dto.request.VerifyEmailRequest;
+import com.example.eduspace.auth.dto.request.*;
+import com.example.eduspace.auth.dto.request.VerifyPasswordResetOtpRequest;
 import com.example.eduspace.auth.dto.response.AuthResponse;
 import com.example.eduspace.auth.dto.response.GenericMessageResponse;
+import com.example.eduspace.auth.dto.response.VerifyPasswordResetOtpResponse;
 import com.example.eduspace.auth.service.AuthService;
 import com.example.eduspace.common.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -68,6 +67,45 @@ public class AuthController {
                 ApiResponse.<AuthResponse>builder()
                         .success(true)
                         .message("Login successful.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<GenericMessageResponse>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        GenericMessageResponse response = authService.forgotPassword(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<GenericMessageResponse>builder()
+                        .success(true)
+                        .message(response.getMessage())
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/verify-password-reset-otp")
+    public ResponseEntity<ApiResponse<VerifyPasswordResetOtpResponse>> verifyPasswordResetOtp(@Valid @RequestBody VerifyPasswordResetOtpRequest request) {
+        VerifyPasswordResetOtpResponse response = authService.verifyPasswordResetOtp(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<VerifyPasswordResetOtpResponse>builder()
+                        .success(true)
+                        .message("OTP verified successfully.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<GenericMessageResponse>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        GenericMessageResponse response = authService.resetPassword(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<GenericMessageResponse>builder()
+                        .success(true)
+                        .message(response.getMessage())
                         .data(response)
                         .build()
         );

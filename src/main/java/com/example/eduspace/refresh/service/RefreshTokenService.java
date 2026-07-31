@@ -5,6 +5,8 @@ import com.example.eduspace.refresh.repository.RefreshTokenRepository;
 import com.example.eduspace.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 
 @Service
@@ -13,7 +15,7 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository repository;
 
-    public RefreshToken saveRefreshToken(User user, String token, Instant expiresAt) {
+    public void saveRefreshToken(User user, String token, Instant expiresAt) {
         repository.deleteByUserId(user.getId());
 
         RefreshToken refreshToken = RefreshToken.builder()
@@ -23,7 +25,7 @@ public class RefreshTokenService {
                 .revoked(false)
                 .build();
 
-        return repository.save(refreshToken);
+        repository.save(refreshToken);
     }
 
     public RefreshToken getRefreshToken(String token) {
@@ -38,5 +40,10 @@ public class RefreshTokenService {
         refreshToken.setRevokedAt(Instant.now());
 
         repository.save(refreshToken);
+    }
+
+    @Transactional
+    public void revokeAll(User user) {
+        repository.deleteByUserId(user.getId());
     }
 }

@@ -67,4 +67,34 @@ public final class EmailTemplateBuilder {
                 """.formatted(name, otp);
 
     }
+
+    public static String buildPasswordResetOtpEmail(String name, String otp) {
+
+        return """
+            <html>
+                <body style="font-family:Arial,sans-serif;">
+                    <h2>Password Reset Request</h2>
+
+                    <p>Hello %s,</p>
+
+                    <p>We received a request to reset your EduSpace password.</p>
+
+                    <p>Your One-Time Password (OTP) is:</p>
+
+                    <h1 style="letter-spacing:5px;">%s</h1>
+
+                    <p>This OTP will expire in <b>10 minutes</b>.</p>
+
+                    <p>If you didn't request a password reset, you can safely ignore this email.</p>
+
+                    <br>
+
+                    <p>Regards,</p>
+
+                    <p><b>EduSpace Team</b></p>
+
+                </body>
+            </html>
+            """.formatted(name, otp);
+    }
 }

@@ -59,6 +59,7 @@ public class JwtServiceImpl implements JwtService {
         return JwtTokenType.valueOf(type);
     }
 
+
     @Override
     public boolean isTokenExpired(String token) {
         return extractClaim(token, Claims::getExpiration).before(new Date());

@@ -4,6 +4,9 @@ import com.example.eduspace.common.entity.BaseEntity;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
+
 import java.time.Instant;
 
 @Getter
@@ -17,6 +20,7 @@ public class RefreshToken extends BaseEntity {
     @Id
     private String id;
 
+    @Field(targetType = FieldType.OBJECT_ID)
     private String userId;
 
     private String token;

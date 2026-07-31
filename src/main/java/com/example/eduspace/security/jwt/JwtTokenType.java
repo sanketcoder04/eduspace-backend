@@ -2,5 +2,6 @@ package com.example.eduspace.security.jwt;
 
 public enum JwtTokenType {
     ACCESS,
-    REFRESH
+    REFRESH,
+    PASSWORD_RESET
 }
