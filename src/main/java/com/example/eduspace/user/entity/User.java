@@ -30,6 +30,8 @@ public class User extends BaseEntity {
 
     private String password;
 
+    private String name;
+
     private Role role;
 
     private AuthProvider provider;
@@ -37,6 +39,8 @@ public class User extends BaseEntity {
     private String providerId;
 
     private boolean emailVerified;
+
+    private Instant emailVerifiedAt;
 
     private boolean enabled;
 

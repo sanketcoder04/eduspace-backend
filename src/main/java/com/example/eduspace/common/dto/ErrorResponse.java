@@ -1,26 +1,24 @@
 package com.example.eduspace.common.dto;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.List;
 
 @Getter
-@Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ErrorResponse {
 
-    private boolean success;
-
-    private String message;
+    private Instant timestamp;
 
     private int status;
 
-    private Map<String, String> errors;
+    private String error;
 
-    @Builder.Default
-    private Instant timestamp = Instant.now();
+    private String message;
 
+    private String path;
+
+    private List<FieldValidationError> errors;
 }

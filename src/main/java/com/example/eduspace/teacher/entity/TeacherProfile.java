@@ -25,9 +25,7 @@ public class TeacherProfile extends BaseEntity {
     @Indexed(unique = true)
     private String userId;
 
-    private String firstName;
-
-    private String lastName;
+    private String name;
 
     private String phoneNumber;
 
