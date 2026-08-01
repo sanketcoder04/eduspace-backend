@@ -23,7 +23,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setTo(email);
             helper.setSubject(MailConstants.EMAIL_VERIFICATION_SUBJECT);
-            helper.setText(EmailTemplateBuilder.verificationOtpTemplate(name, otp), true);
+            helper.setText(EmailTemplateBuilder.verificationOtpEmailTemplate(name, otp), true);
             mailSender.send(message);
 
         } catch (MessagingException | MailException e) {
@@ -37,8 +37,8 @@ public class EmailService {
         try {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setTo(email);
-            helper.setSubject("Reset Your EduSpace Password");
-            helper.setText(EmailTemplateBuilder.buildPasswordResetOtpEmail(name, otp), true);
+            helper.setSubject(MailConstants.PASSWORD_RESET_SUBJECT);
+            helper.setText(EmailTemplateBuilder.passwordResetOtpEmailTemplate(name, otp), true);
             mailSender.send(message);
 
         } catch (Exception e) {

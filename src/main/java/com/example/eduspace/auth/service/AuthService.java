@@ -12,7 +12,9 @@ import com.example.eduspace.auth.validation.AuthValidator;
 import com.example.eduspace.common.enums.AuthProvider;
 import com.example.eduspace.config.properties.JwtProperties;
 import com.example.eduspace.exception.ResourceNotFoundException;
+import com.example.eduspace.exception.UnauthorizedException;
 import com.example.eduspace.mail.service.EmailService;
+import com.example.eduspace.refresh.entity.RefreshToken;
 import com.example.eduspace.refresh.service.RefreshTokenService;
 import com.example.eduspace.security.authentication.CustomUserDetails;
 import com.example.eduspace.security.jwt.JwtService;
@@ -109,7 +111,28 @@ public class AuthService {
     }
 
     public TokenResponse refreshToken(RefreshTokenRequest request) {
-        return null;
+        RefreshToken stored = refreshTokenService.getRefreshToken(request.getRefreshToken());
+
+        if (stored.isRevoked() || stored.getExpiresAt().isBefore(Instant.now())) {
+            throw new UnauthorizedException("Refresh token is invalid or expired.");
+        }
+
+        User user = userRepository.findById(stored.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        refreshTokenService.revoke(request.getRefreshToken());
+
+        String newAccessToken = jwtService.generateAccessToken(userDetails);
+        String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+        Instant expiresAt = Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration());
+        refreshTokenService.saveRefreshToken(user, newRefreshToken, expiresAt);
+
+        return TokenResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
     }
 
     public GenericMessageResponse verifyEmail(VerifyEmailRequest request) {
@@ -151,13 +174,11 @@ public class AuthService {
     }
 
     public GenericMessageResponse forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository
-                .findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-
-        String otp = verificationTokenService.createPasswordResetToken(user);
-
-        emailService.sendPasswordResetOtp(user.getEmail(), user.getName(), otp);
+        userRepository.findByEmail(request.getEmail())
+                .ifPresent(user -> {
+                    String otp = verificationTokenService.createPasswordResetToken(user);
+                    emailService.sendPasswordResetOtp(user.getEmail(), user.getName(), otp);
+        });
 
         return GenericMessageResponse.builder()
                 .message("If an account exists with this email, a password reset OTP has been sent.")
@@ -183,7 +204,6 @@ public class AuthService {
             throw new BadRequestException("Invalid or expired reset token.");
         }
 
-        // Verify the reset token matches the one stored in VerificationToken
         verificationTokenService.verifyPasswordResetToken(user, resetToken);
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -204,21 +224,23 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
 
-        // Verify OTP and mark it as used
         verificationTokenService.verifyPasswordResetOtp(user, request.getOtp());
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
-        // Generate reset token JWT
         String resetToken = jwtService.generateToken(userDetails, JwtTokenType.PASSWORD_RESET, jwtProperties.getPasswordResetTokenExpiration());
 
-        // Store the reset token in VerificationToken for later validation
         verificationTokenService.storePasswordResetToken(user, resetToken);
 
         return VerifyPasswordResetOtpResponse.builder().resetToken(resetToken).build();
     }
 
-    public GenericMessageResponse logout() {
-        return null;
+    public GenericMessageResponse logout(RefreshTokenRequest request) {
+        refreshTokenService.revoke(request.getRefreshToken());
+        return GenericMessageResponse.builder().message("Logged out successfully.").build();
+    }
+
+    public UserResponse getCurrentUser(User user) {
+        return authMapper.toUserResponse(user);
     }
 }

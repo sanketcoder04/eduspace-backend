@@ -2,15 +2,15 @@ package com.example.eduspace.auth.controller;
 
 import com.example.eduspace.auth.dto.request.*;
 import com.example.eduspace.auth.dto.request.VerifyPasswordResetOtpRequest;
-import com.example.eduspace.auth.dto.response.AuthResponse;
-import com.example.eduspace.auth.dto.response.GenericMessageResponse;
-import com.example.eduspace.auth.dto.response.VerifyPasswordResetOtpResponse;
+import com.example.eduspace.auth.dto.response.*;
 import com.example.eduspace.auth.service.AuthService;
 import com.example.eduspace.common.dto.ApiResponse;
+import com.example.eduspace.security.authentication.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -109,5 +109,43 @@ public class AuthController {
                         .data(response)
                         .build()
         );
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<TokenResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        TokenResponse response = authService.refreshToken(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TokenResponse>builder()
+                        .success(true)
+                        .message("Token refreshed.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<GenericMessageResponse>> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        GenericMessageResponse response = authService.logout(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<GenericMessageResponse>builder()
+                        .success(true)
+                        .message(response.getMessage())
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        UserResponse response = authService.getCurrentUser(userDetails.user());
+
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Current user fetched.")
+                .data(response)
+                .build());
     }
 }

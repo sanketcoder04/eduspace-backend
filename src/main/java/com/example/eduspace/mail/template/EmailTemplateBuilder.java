@@ -5,12 +5,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public final class EmailTemplateBuilder {
 
-    public static String verificationOtpTemplate(String name, String otp) {
+    public static String verificationOtpEmailTemplate(String name, String otp) {
 
         return """
                 <!DOCTYPE html>
                 <html>
-                <body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:40px;">
+                <body style="font-family:Arial,sans-serif;background:#f5f5f5;">
 
                 <div style="
                         max-width:600px;
@@ -37,7 +37,7 @@ public final class EmailTemplateBuilder {
                     </p>
 
                     <div style="
-                            font-size:34px;
+                            font-size:30px;
                             font-weight:bold;
                             letter-spacing:8px;
                             text-align:center;
@@ -68,33 +68,65 @@ public final class EmailTemplateBuilder {
 
     }
 
-    public static String buildPasswordResetOtpEmail(String name, String otp) {
+    public static String passwordResetOtpEmailTemplate(String name, String otp) {
 
         return """
-            <html>
-                <body style="font-family:Arial,sans-serif;">
-                    <h2>Password Reset Request</h2>
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:40px;">
 
-                    <p>Hello %s,</p>
+                <div style="
+                        max-width:600px;
+                        margin:auto;
+                        background:white;
+                        border-radius:12px;
+                        padding:40px;
+                        box-shadow:0 2px 12px rgba(0,0,0,.08);">
 
-                    <p>We received a request to reset your EduSpace password.</p>
+                    <h2 style="color:#d32f2f;">
+                        Password Reset Request
+                    </h2>
 
-                    <p>Your One-Time Password (OTP) is:</p>
+                    <p>
+                        Hello <b>%s</b>,
+                    </p>
 
-                    <h1 style="letter-spacing:5px;">%s</h1>
+                    <p>
+                        We received a request to reset your EduSpace password.
+                    </p>
 
-                    <p>This OTP will expire in <b>10 minutes</b>.</p>
+                    <p>
+                        Your One-Time Password (OTP) is:
+                    </p>
 
-                    <p>If you didn't request a password reset, you can safely ignore this email.</p>
+                    <div style="
+                            font-size:30px;
+                            font-weight:bold;
+                            letter-spacing:8px;
+                            text-align:center;
+                            margin:30px 0;
+                            color:#d32f2f;">
 
-                    <br>
+                        %s
 
-                    <p>Regards,</p>
+                    </div>
 
-                    <p><b>EduSpace Team</b></p>
+                    <p>
+                        This OTP will expire in
+                        <b>10 minutes</b>.
+                    </p>
+
+                    <hr>
+
+                    <p style="color:gray;font-size:12px;">
+                        If you didn't request a password reset,
+                        please ignore this email.
+                    </p>
+
+                </div>
 
                 </body>
-            </html>
-            """.formatted(name, otp);
+                </html>
+                """.formatted(name, otp);
     }
 }
