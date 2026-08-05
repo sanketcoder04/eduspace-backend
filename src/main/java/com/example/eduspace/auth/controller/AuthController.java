@@ -138,14 +138,46 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
         UserResponse response = authService.getCurrentUser(userDetails.user());
 
-        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
-                .success(true)
-                .message("Current user fetched.")
-                .data(response)
-                .build());
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .success(true)
+                        .message("Current user fetched.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<GoogleAuthResponse>> googleAuth(@Valid @RequestBody GoogleAuthRequest request) {
+        GoogleAuthResponse response = authService.googleAuth(request);
+
+        String message = response.getStatus() == GoogleAuthStatus.LOGIN_SUCCESS
+                ? "Login successful."
+                : "Please select a role to complete registration.";
+
+        return ResponseEntity.ok(
+                ApiResponse.<GoogleAuthResponse>builder()
+                        .success(true)
+                        .message(message)
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/google/complete-registration")
+    public ResponseEntity<ApiResponse<AuthResponse>> completeGoogleRegistration(
+            @Valid @RequestBody CompleteGoogleRegistrationRequest request) {
+        AuthResponse response = authService.completeGoogleRegistration(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.<AuthResponse>builder()
+                        .success(true)
+                        .message("Registration successful.")
+                        .data(response)
+                        .build()
+        );
     }
 }

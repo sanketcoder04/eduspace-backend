@@ -1,16 +1,13 @@
 package com.example.eduspace.auth.service;
 
 import com.example.eduspace.auth.dto.request.*;
-import com.example.eduspace.auth.dto.response.AuthResponse;
-import com.example.eduspace.auth.dto.response.GenericMessageResponse;
-import com.example.eduspace.auth.dto.response.TokenResponse;
-import com.example.eduspace.auth.dto.response.UserResponse;
+import com.example.eduspace.auth.dto.response.*;
 import com.example.eduspace.auth.dto.request.VerifyPasswordResetOtpRequest;
-import com.example.eduspace.auth.dto.response.VerifyPasswordResetOtpResponse;
 import com.example.eduspace.auth.mapper.AuthMapper;
 import com.example.eduspace.auth.validation.AuthValidator;
 import com.example.eduspace.common.enums.AuthProvider;
 import com.example.eduspace.config.properties.JwtProperties;
+import com.example.eduspace.exception.ConflictException;
 import com.example.eduspace.exception.ResourceNotFoundException;
 import com.example.eduspace.exception.UnauthorizedException;
 import com.example.eduspace.mail.service.EmailService;
@@ -23,6 +20,7 @@ import com.example.eduspace.user.entity.User;
 import com.example.eduspace.user.repository.UserRepository;
 import com.example.eduspace.verification.service.VerificationTokenService;
 import com.example.eduspace.exception.BadRequestException;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +53,10 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
 
     private final JwtProperties jwtProperties;
+
+    private final GoogleTokenVerifierService googleTokenVerifierService;
+
+    private static final long GOOGLE_REGISTRATION_TOKEN_EXPIRATION = 10 * 60 * 1000L; // 10 minutes
 
     public GenericMessageResponse register(RegisterRequest request) {
         authValidator.validateRegistration(request.getEmail());
@@ -212,7 +215,6 @@ public class AuthService {
 
         refreshTokenService.revokeAll(user);
 
-        // invalidate any existing password reset verification tokens for this user
         verificationTokenService.invalidatePasswordResetTokens(user);
 
         return GenericMessageResponse.builder()
@@ -242,5 +244,109 @@ public class AuthService {
 
     public UserResponse getCurrentUser(User user) {
         return authMapper.toUserResponse(user);
+    }
+
+    public GoogleAuthResponse googleAuth(GoogleAuthRequest request) {
+        GoogleIdToken.Payload payload = googleTokenVerifierService.verify(request.getIdToken());
+
+        String email = payload.getEmail();
+        String googleId = payload.getSubject();
+        String name = (String) payload.get("name");
+
+        return userRepository.findByEmail(email)
+                .map(user -> loginExistingGoogleUser(user, googleId))
+                .orElseGet(() -> requireRoleSelection(email, name, googleId));
+    }
+
+    @Transactional
+    public AuthResponse completeGoogleRegistration(CompleteGoogleRegistrationRequest request) {
+        String token = request.getRegistrationToken();
+
+        if (jwtService.extractTokenType(token) != JwtTokenType.GOOGLE_REGISTRATION) {
+            throw new BadRequestException("Invalid registration token.");
+        }
+        if (jwtService.isTokenExpired(token)) {
+            throw new BadRequestException("Registration session has expired. Please try again.");
+        }
+
+        String email = jwtService.extractClaimAsString(token, "email");
+        String name = jwtService.extractClaimAsString(token, "name");
+        String googleId = jwtService.extractClaimAsString(token, "googleId");
+
+        if (userRepository.existsByEmail(email)) {
+            throw new ConflictException("An account with this email already exists.");
+        }
+
+        User user = User.builder()
+                .name(name)
+                .email(email)
+                .provider(AuthProvider.GOOGLE)
+                .providerId(googleId)
+                .role(request.getRole())
+                .enabled(true)
+                .emailVerified(true)
+                .emailVerifiedAt(Instant.now())
+                .accountLocked(false)
+                .lastLoginAt(Instant.now())
+                .build();
+
+        userRepository.save(user);
+
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        Instant expiresAt = Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration());
+        refreshTokenService.saveRefreshToken(user, refreshToken, expiresAt);
+
+        return AuthResponse.builder()
+                .token(TokenResponse.builder().accessToken(accessToken).refreshToken(refreshToken).build())
+                .user(authMapper.toUserResponse(user))
+                .build();
+    }
+
+    private GoogleAuthResponse loginExistingGoogleUser(User user, String googleId) {
+        // Google has already verified this email — safe to auto-link and log in directly
+        if (user.getProviderId() == null) {
+            user.setProviderId(googleId);
+        }
+        if (!user.isEmailVerified()) {
+            user.setEmailVerified(true);
+            user.setEmailVerifiedAt(Instant.now());
+        }
+        if (!user.isEnabled()) {
+            user.setEnabled(true);
+        }
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        Instant expiresAt = Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration());
+        refreshTokenService.saveRefreshToken(user, refreshToken, expiresAt);
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .token(TokenResponse.builder().accessToken(accessToken).refreshToken(refreshToken).build())
+                .user(authMapper.toUserResponse(user))
+                .build();
+
+        return GoogleAuthResponse.builder()
+                .status(GoogleAuthStatus.LOGIN_SUCCESS)
+                .auth(authResponse)
+                .build();
+    }
+
+    private GoogleAuthResponse requireRoleSelection(String email, String name, String googleId) {
+        Map<String, Object> claims = Map.of("email", email, "name", name, "googleId", googleId);
+
+        String registrationToken = jwtService.generateClaimsOnlyToken(
+                claims, email, JwtTokenType.GOOGLE_REGISTRATION, GOOGLE_REGISTRATION_TOKEN_EXPIRATION);
+
+        return GoogleAuthResponse.builder()
+                .status(GoogleAuthStatus.REGISTRATION_REQUIRED)
+                .registrationToken(registrationToken)
+                .email(email)
+                .name(name)
+                .build();
     }
 }
