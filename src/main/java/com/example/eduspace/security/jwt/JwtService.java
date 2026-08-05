@@ -17,8 +17,11 @@ public interface JwtService {
 
     JwtTokenType extractTokenType(String token);
 
-
     boolean isTokenExpired(String token);
 
     boolean isTokenValid(String token, UserDetails userDetails);
+
+    String generateClaimsOnlyToken(Map<String, Object> claims, String subject, JwtTokenType tokenType, long expiration);
+
+    String extractClaimAsString(String token, String claimKey);
 }

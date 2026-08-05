@@ -70,6 +70,23 @@ public class JwtServiceImpl implements JwtService {
         return extractUsername(token).equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
+    @Override
+    public String generateClaimsOnlyToken(Map<String, Object> claims, String subject, JwtTokenType tokenType, long expiration) {
+        return Jwts.builder()
+                .claims(claims)
+                .subject(subject)
+                .claim("type", tokenType.name())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    @Override
+    public String extractClaimAsString(String token, String claimKey) {
+        return extractClaim(token, claims -> claims.get(claimKey, String.class));
+    }
+
     private <T> T extractClaim(String token, Function<Claims, T> resolver) {
         Claims claims = Jwts.parser()
                 .verifyWith((SecretKey) getSigningKey())
