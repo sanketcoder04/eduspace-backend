@@ -3,6 +3,7 @@ package com.example.eduspace.teacher.entity;
 import com.example.eduspace.common.entity.Address;
 import com.example.eduspace.common.entity.BaseEntity;
 import com.example.eduspace.common.entity.Education;
+import com.example.eduspace.common.entity.ProfileVerification;
 import com.example.eduspace.common.enums.Gender;
 
 import lombok.*;
@@ -60,7 +61,7 @@ public class TeacherProfile extends BaseEntity {
 
     // ---- Step 4: Location + Face Verification ----
     @Builder.Default
-    private TeacherVerification verification = TeacherVerification.builder().build();
+    private ProfileVerification verification = ProfileVerification.builder().build();
 
     // ---- Step 5: Review & Submit ----
     private boolean profileCompleted;

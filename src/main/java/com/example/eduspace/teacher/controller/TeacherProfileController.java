@@ -1,10 +1,10 @@
 package com.example.eduspace.teacher.controller;
 
 import com.example.eduspace.common.dto.ApiResponse;
+import com.example.eduspace.common.dto.SubmitVerificationRequest;
 import com.example.eduspace.common.dto.UpdateEducationListRequest;
 import com.example.eduspace.security.authentication.CustomUserDetails;
 import com.example.eduspace.teacher.dto.request.AddSubjectOfferingRequest;
-import com.example.eduspace.teacher.dto.request.SubmitVerificationRequest;
 import com.example.eduspace.teacher.dto.request.UpdateSubjectOfferingRequest;
 import com.example.eduspace.teacher.dto.request.UpdateTeacherBasicInfoRequest;
 import com.example.eduspace.teacher.dto.response.TeacherProfileResponse;

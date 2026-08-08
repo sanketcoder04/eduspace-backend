@@ -1,6 +1,5 @@
-package com.example.eduspace.teacher.entity;
+package com.example.eduspace.common.entity;
 
-import com.example.eduspace.common.entity.Address;
 import com.example.eduspace.common.enums.VerificationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +14,7 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeacherVerification {
+public class ProfileVerification {
 
     @Builder.Default
     private VerificationStatus status = VerificationStatus.NOT_SUBMITTED;

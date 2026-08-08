@@ -1,6 +1,5 @@
-package com.example.eduspace.teacher.dto.response;
+package com.example.eduspace.common.dto;
 
-import com.example.eduspace.common.dto.AddressDto;
 import com.example.eduspace.common.enums.VerificationStatus;
 import lombok.*;
 

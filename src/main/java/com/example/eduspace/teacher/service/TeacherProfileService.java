@@ -1,16 +1,16 @@
 package com.example.eduspace.teacher.service;
 
+import com.example.eduspace.common.dto.SubmitVerificationRequest;
+import com.example.eduspace.common.entity.ProfileVerification;
 import com.example.eduspace.common.enums.VerificationStatus;
 import com.example.eduspace.exception.ResourceNotFoundException;
 import com.example.eduspace.teacher.dto.request.AddSubjectOfferingRequest;
-import com.example.eduspace.teacher.dto.request.SubmitVerificationRequest;
 import com.example.eduspace.teacher.dto.request.UpdateSubjectOfferingRequest;
 import com.example.eduspace.teacher.dto.request.UpdateTeacherBasicInfoRequest;
 import com.example.eduspace.common.dto.EducationDto;
 import com.example.eduspace.teacher.dto.response.TeacherProfileResponse;
 import com.example.eduspace.teacher.entity.SubjectOffering;
 import com.example.eduspace.teacher.entity.TeacherProfile;
-import com.example.eduspace.teacher.entity.TeacherVerification;
 import com.example.eduspace.teacher.mapper.TeacherProfileMapper;
 import com.example.eduspace.teacher.repository.TeacherRepository;
 import com.example.eduspace.user.entity.User;
@@ -121,9 +121,7 @@ public class TeacherProfileService {
     public TeacherProfileResponse submitVerification(User user, SubmitVerificationRequest request) {
         TeacherProfile profile = getOrCreateProfile(user);
 
-        // MVP: auto-approve on submission. Swap this block for a call to a real
-        // face-match/liveness provider later — everything else stays the same.
-        TeacherVerification verification = TeacherVerification.builder()
+        ProfileVerification verification = ProfileVerification.builder()
                 .status(VerificationStatus.VERIFIED)
                 .selfieUrl(request.getSelfieUrl())
                 .verifiedAddress(mapper.toAddress(request.getAddress()))

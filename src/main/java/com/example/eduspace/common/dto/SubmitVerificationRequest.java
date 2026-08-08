@@ -1,6 +1,5 @@
-package com.example.eduspace.teacher.dto.request;
+package com.example.eduspace.common.dto;
 
-import com.example.eduspace.common.dto.AddressDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
