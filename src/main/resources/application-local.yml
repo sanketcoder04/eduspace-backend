@@ -16,6 +16,11 @@ spring:
           starttls:
             enable: true
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 eduspace:
   jwt:
     secret-key: ${JWT_SECRET}
@@ -29,6 +34,12 @@ eduspace:
 
   google:
     client-id: ${GOOGLE_CLIENT_ID}
+
+  storage:
+    url: ${SUPABASE_URL}
+    service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
+    bucket: ${SUPABASE_BUCKET:eduspace-uploads}
+    max-file-size-mb: 10
 
 logging:
   level:
@@ -47,8 +58,3 @@ management:
   endpoint:
     health:
       show-details: always
-
-file:
-  upload:
-    directory: uploads
-    max-size: 10MB

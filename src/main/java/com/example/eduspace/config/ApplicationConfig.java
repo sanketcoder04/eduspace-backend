@@ -3,10 +3,13 @@ package com.example.eduspace.config;
 import com.example.eduspace.config.properties.AppProperties;
 import com.example.eduspace.config.properties.GoogleOAuthProperties;
 import com.example.eduspace.config.properties.JwtProperties;
+import com.example.eduspace.config.properties.StorageProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties({JwtProperties.class, AppProperties.class, GoogleOAuthProperties.class})
+@EnableConfigurationProperties({
+        JwtProperties.class, AppProperties.class, GoogleOAuthProperties.class, StorageProperties.class
+})
 public class ApplicationConfig {
 }
