@@ -27,11 +27,6 @@ public class SubjectOffering {
 
     private String qualificationLevel;
 
-    private String resumeUrl;
-
-    @Builder.Default
-    private List<String> certificateUrls = List.of();
-
     private Instant addedAt;
 
     private Instant updatedAt;

@@ -16,11 +16,6 @@ import java.net.http.HttpResponse;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Uses Supabase Storage's plain REST API (PUT/DELETE object) via the JDK's
- * built-in HttpClient — no extra SDK dependency required. Swap this class
- * (behind StorageService) if you later move to S3/R2/GCS.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

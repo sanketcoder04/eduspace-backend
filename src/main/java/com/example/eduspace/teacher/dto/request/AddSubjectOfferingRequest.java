@@ -17,10 +17,4 @@ public class AddSubjectOfferingRequest {
 
     @NotBlank(message = "Qualification level is required.")
     private String qualificationLevel;
-
-    // URLs returned by POST /api/v1/media/upload, uploaded beforehand.
-    private String resumeUrl;
-
-    @Builder.Default
-    private List<String> certificateUrls = List.of();
 }

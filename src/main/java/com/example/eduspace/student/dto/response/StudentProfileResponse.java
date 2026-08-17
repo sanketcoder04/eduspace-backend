@@ -1,11 +1,13 @@
 package com.example.eduspace.student.dto.response;
 
 import com.example.eduspace.common.dto.AddressDto;
+import com.example.eduspace.common.dto.CertificateResponse;
 import com.example.eduspace.common.dto.EducationDto;
 import com.example.eduspace.common.dto.VerificationResponse;
 import com.example.eduspace.common.enums.Gender;
 import lombok.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -41,11 +43,23 @@ public class StudentProfileResponse {
 
     private String avatarUrl;
 
+    private String coverImageUrl;
+
     private List<EducationDto> education;
+
+    private List<CertificateResponse> certificates;
 
     private VerificationResponse verification;
 
     private boolean profileCompleted;
 
     private int profileCompletionPercent;
+
+    private long profileViews;
+
+    private Instant createdAt;
+
+    private Instant updatedAt;
+
+    private Instant lastLoginAt;
 }

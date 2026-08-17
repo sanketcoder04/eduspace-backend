@@ -8,6 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 @ConfigurationProperties(prefix = "eduspace.app")
 public class AppProperties {
+
     private String frontendUrl;
+
     private String backendUrl;
 }

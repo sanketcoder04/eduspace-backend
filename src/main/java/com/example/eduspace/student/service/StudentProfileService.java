@@ -1,9 +1,13 @@
 package com.example.eduspace.student.service;
 
+import com.example.eduspace.common.dto.AddCertificateRequest;
 import com.example.eduspace.common.dto.EducationDto;
 import com.example.eduspace.common.dto.SubmitVerificationRequest;
+import com.example.eduspace.common.dto.UpdateCertificateRequest;
+import com.example.eduspace.common.entity.Certificate;
 import com.example.eduspace.common.entity.ProfileVerification;
 import com.example.eduspace.common.enums.VerificationStatus;
+import com.example.eduspace.exception.ResourceNotFoundException;
 import com.example.eduspace.student.dto.request.UpdateStudentBasicInfoRequest;
 import com.example.eduspace.student.dto.response.StudentProfileResponse;
 import com.example.eduspace.student.entity.StudentProfile;
@@ -14,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,6 +81,67 @@ public class StudentProfileService {
                 .build();
 
         profile.setVerification(verification);
+
+        return save(profile, user);
+    }
+
+    public StudentProfileResponse updateAvatar(User user, String avatarUrl) {
+        StudentProfile profile = getOrCreateProfile(user);
+        profile.setAvatarUrl(avatarUrl);
+        return save(profile, user);
+    }
+
+    public StudentProfileResponse updateCover(User user, String coverImageUrl) {
+        StudentProfile profile = getOrCreateProfile(user);
+        profile.setCoverImageUrl(coverImageUrl);
+        return save(profile, user);
+    }
+
+    public StudentProfileResponse addCertificate(User user, AddCertificateRequest request) {
+        StudentProfile profile = getOrCreateProfile(user);
+
+        Certificate certificate = Certificate.builder()
+                .id(UUID.randomUUID().toString())
+                .title(request.getTitle())
+                .url(request.getUrl())
+                .uploadedAt(Instant.now())
+                .build();
+
+        List<Certificate> certificates = new ArrayList<>(profile.getCertificates());
+        certificates.add(certificate);
+        profile.setCertificates(certificates);
+
+        return save(profile, user);
+    }
+
+    public StudentProfileResponse updateCertificate(User user, String certificateId, UpdateCertificateRequest request) {
+        StudentProfile profile = getOrCreateProfile(user);
+
+        List<Certificate> certificates = new ArrayList<>(profile.getCertificates());
+        Certificate existing = certificates.stream()
+                .filter(c -> c.getId().equals(certificateId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Certificate not found."));
+
+        existing.setTitle(request.getTitle());
+        existing.setUrl(request.getUrl());
+
+        profile.setCertificates(certificates);
+
+        return save(profile, user);
+    }
+
+    public StudentProfileResponse deleteCertificate(User user, String certificateId) {
+        StudentProfile profile = getOrCreateProfile(user);
+
+        List<Certificate> certificates = new ArrayList<>(profile.getCertificates());
+        boolean removed = certificates.removeIf(c -> c.getId().equals(certificateId));
+
+        if (!removed) {
+            throw new ResourceNotFoundException("Certificate not found.");
+        }
+
+        profile.setCertificates(certificates);
 
         return save(profile, user);
     }

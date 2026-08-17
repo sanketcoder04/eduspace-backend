@@ -3,10 +3,11 @@ package com.example.eduspace.teacher.controller;
 import com.example.eduspace.common.dto.ApiResponse;
 import com.example.eduspace.common.dto.SubmitVerificationRequest;
 import com.example.eduspace.common.dto.UpdateEducationListRequest;
+import com.example.eduspace.common.dto.UpdateImageRequest;
+import com.example.eduspace.common.dto.AddCertificateRequest;
+import com.example.eduspace.common.dto.UpdateCertificateRequest;
 import com.example.eduspace.security.authentication.CustomUserDetails;
-import com.example.eduspace.teacher.dto.request.AddSubjectOfferingRequest;
-import com.example.eduspace.teacher.dto.request.UpdateSubjectOfferingRequest;
-import com.example.eduspace.teacher.dto.request.UpdateTeacherBasicInfoRequest;
+import com.example.eduspace.teacher.dto.request.*;
 import com.example.eduspace.teacher.dto.response.TeacherProfileResponse;
 import com.example.eduspace.teacher.service.TeacherProfileService;
 import jakarta.validation.Valid;
@@ -136,6 +137,119 @@ public class TeacherProfileController {
                 ApiResponse.<TeacherProfileResponse>builder()
                         .success(true)
                         .message("Verification submitted.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PatchMapping("/avatar")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> updateAvatar(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody UpdateImageRequest request) {
+
+        TeacherProfileResponse response = teacherProfileService.updateAvatar(userDetails.user(), request.getUrl());
+
+        return ResponseEntity.ok(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true)
+                        .message("Profile photo updated.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PatchMapping("/cover")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> updateCover(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody UpdateImageRequest request) {
+
+        TeacherProfileResponse response = teacherProfileService.updateCover(userDetails.user(), request.getUrl());
+
+        return ResponseEntity.ok(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true)
+                        .message("Cover photo updated.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PatchMapping("/resume")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> updateResume(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody UpdateImageRequest request) {
+
+        TeacherProfileResponse response = teacherProfileService.updateResume(userDetails.user(), request.getUrl());
+
+        return ResponseEntity.ok(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true)
+                        .message("Resume updated.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @DeleteMapping("/resume")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> deleteResume(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        TeacherProfileResponse response = teacherProfileService.deleteResume(userDetails.user());
+
+        return ResponseEntity.ok(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true)
+                        .message("Resume removed.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/certificates")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> addCertificate(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody AddCertificateRequest request) {
+
+        TeacherProfileResponse response = teacherProfileService.addCertificate(userDetails.user(), request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true)
+                        .message("Certificate added.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PutMapping("/certificates/{certificateId}")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> updateCertificate(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String certificateId,
+            @Valid @RequestBody UpdateCertificateRequest request) {
+
+        TeacherProfileResponse response =
+                teacherProfileService.updateCertificate(userDetails.user(), certificateId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true)
+                        .message("Certificate updated.")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @DeleteMapping("/certificates/{certificateId}")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> deleteCertificate(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String certificateId) {
+
+        TeacherProfileResponse response = teacherProfileService.deleteCertificate(userDetails.user(), certificateId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true)
+                        .message("Certificate removed.")
                         .data(response)
                         .build()
         );

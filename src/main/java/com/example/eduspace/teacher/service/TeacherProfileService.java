@@ -1,6 +1,7 @@
 package com.example.eduspace.teacher.service;
 
 import com.example.eduspace.common.dto.SubmitVerificationRequest;
+import com.example.eduspace.common.entity.Certificate;
 import com.example.eduspace.common.entity.ProfileVerification;
 import com.example.eduspace.common.enums.VerificationStatus;
 import com.example.eduspace.exception.ResourceNotFoundException;
@@ -13,6 +14,8 @@ import com.example.eduspace.teacher.entity.SubjectOffering;
 import com.example.eduspace.teacher.entity.TeacherProfile;
 import com.example.eduspace.teacher.mapper.TeacherProfileMapper;
 import com.example.eduspace.teacher.repository.TeacherRepository;
+import com.example.eduspace.common.dto.AddCertificateRequest;
+import com.example.eduspace.common.dto.UpdateCertificateRequest;
 import com.example.eduspace.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -69,8 +72,6 @@ public class TeacherProfileService {
                 .id(UUID.randomUUID().toString())
                 .subjectName(request.getSubjectName())
                 .qualificationLevel(request.getQualificationLevel())
-                .resumeUrl(request.getResumeUrl())
-                .certificateUrls(request.getCertificateUrls())
                 .addedAt(Instant.now())
                 .build();
 
@@ -81,8 +82,7 @@ public class TeacherProfileService {
         return save(profile, user);
     }
 
-    public TeacherProfileResponse updateSubjectOffering(
-            User user, String subjectId, UpdateSubjectOfferingRequest request) {
+    public TeacherProfileResponse updateSubjectOffering(User user, String subjectId, UpdateSubjectOfferingRequest request) {
 
         TeacherProfile profile = getOrCreateProfile(user);
 
@@ -94,8 +94,6 @@ public class TeacherProfileService {
 
         existing.setSubjectName(request.getSubjectName());
         existing.setQualificationLevel(request.getQualificationLevel());
-        existing.setResumeUrl(request.getResumeUrl());
-        existing.setCertificateUrls(request.getCertificateUrls());
         existing.setUpdatedAt(Instant.now());
 
         profile.setSubjectOfferings(offerings);
@@ -115,6 +113,77 @@ public class TeacherProfileService {
 
         profile.setSubjectOfferings(offerings);
 
+        return save(profile, user);
+    }
+
+    public TeacherProfileResponse updateAvatar(User user, String avatarUrl) {
+        TeacherProfile profile = getOrCreateProfile(user);
+        profile.setAvatarUrl(avatarUrl);
+        return save(profile, user);
+    }
+
+    public TeacherProfileResponse updateCover(User user, String coverImageUrl) {
+        TeacherProfile profile = getOrCreateProfile(user);
+        profile.setCoverImageUrl(coverImageUrl);
+        return save(profile, user);
+    }
+
+    public TeacherProfileResponse updateResume(User user, String resumeUrl) {
+        TeacherProfile profile = getOrCreateProfile(user);
+        profile.setResumeUrl(resumeUrl);
+        return save(profile, user);
+    }
+
+    public TeacherProfileResponse deleteResume(User user) {
+        TeacherProfile profile = getOrCreateProfile(user);
+        profile.setResumeUrl(null);
+        return save(profile, user);
+    }
+
+    public TeacherProfileResponse addCertificate(User user, AddCertificateRequest request) {
+        TeacherProfile profile = getOrCreateProfile(user);
+
+        Certificate certificate = Certificate.builder()
+                .id(UUID.randomUUID().toString())
+                .title(request.getTitle())
+                .url(request.getUrl())
+                .uploadedAt(Instant.now())
+                .build();
+
+        List<Certificate> certificates = new ArrayList<>(profile.getCertificates());
+        certificates.add(certificate);
+        profile.setCertificates(certificates);
+
+        return save(profile, user);
+    }
+
+    public TeacherProfileResponse updateCertificate(User user, String certificateId, UpdateCertificateRequest request) {
+        TeacherProfile profile = getOrCreateProfile(user);
+
+        List<Certificate> certificates = new ArrayList<>(profile.getCertificates());
+        Certificate existing = certificates.stream()
+                .filter(c -> c.getId().equals(certificateId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Certificate not found."));
+
+        existing.setTitle(request.getTitle());
+        existing.setUrl(request.getUrl());
+
+        profile.setCertificates(certificates);
+
+        return save(profile, user);
+    }
+
+    public TeacherProfileResponse deleteCertificate(User user, String certificateId) {
+        TeacherProfile profile = getOrCreateProfile(user);
+
+        List<Certificate> certificates = new ArrayList<>(profile.getCertificates());
+        boolean removed = certificates.removeIf(c -> c.getId().equals(certificateId));
+
+        if (!removed) {
+            throw new ResourceNotFoundException("Certificate not found.");
+        }
+        profile.setCertificates(certificates);
         return save(profile, user);
     }
 

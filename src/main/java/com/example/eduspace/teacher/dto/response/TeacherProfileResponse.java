@@ -1,18 +1,15 @@
 package com.example.eduspace.teacher.dto.response;
 
 import com.example.eduspace.common.dto.AddressDto;
+import com.example.eduspace.common.dto.CertificateResponse;
 import com.example.eduspace.common.dto.EducationDto;
 import com.example.eduspace.common.dto.VerificationResponse;
 import com.example.eduspace.common.enums.Gender;
 import lombok.*;
 
+import java.time.Instant;
 import java.util.List;
 
-/**
- * Full profile payload — this is what powers the LinkedIn-style profile page,
- * so it intentionally carries every section in one response rather than
- * requiring the frontend to stitch together multiple calls.
- */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -42,6 +39,10 @@ public class TeacherProfileResponse {
 
     private String coverImageUrl;
 
+    private String resumeUrl;
+
+    private List<CertificateResponse> certificates;
+
     private List<EducationDto> education;
 
     private List<SubjectOfferingResponse> subjectOfferings;
@@ -51,4 +52,12 @@ public class TeacherProfileResponse {
     private boolean profileCompleted;
 
     private int profileCompletionPercent;
+
+    private long profileViews;
+
+    private Instant createdAt;
+
+    private Instant updatedAt;
+
+    private Instant lastLoginAt;
 }

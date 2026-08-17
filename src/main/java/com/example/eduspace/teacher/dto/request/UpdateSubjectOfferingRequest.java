@@ -17,9 +17,4 @@ public class UpdateSubjectOfferingRequest {
 
     @NotBlank(message = "Qualification level is required.")
     private String qualificationLevel;
-
-    private String resumeUrl;
-
-    @Builder.Default
-    private List<String> certificateUrls = List.of();
 }

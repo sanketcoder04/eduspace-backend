@@ -1,9 +1,11 @@
 package com.example.eduspace.teacher.mapper;
 
 import com.example.eduspace.common.dto.AddressDto;
+import com.example.eduspace.common.dto.CertificateResponse;
 import com.example.eduspace.common.dto.EducationDto;
 import com.example.eduspace.common.dto.VerificationResponse;
 import com.example.eduspace.common.entity.Address;
+import com.example.eduspace.common.entity.Certificate;
 import com.example.eduspace.common.entity.Education;
 import com.example.eduspace.common.entity.ProfileVerification;
 import com.example.eduspace.teacher.dto.response.SubjectOfferingResponse;
@@ -38,6 +40,11 @@ public interface TeacherProfileMapper {
     @Mapping(target = "id", source = "profile.id")
     @Mapping(target = "name", source = "profile.name")
     @Mapping(target = "email", source = "user.email")
+    @Mapping(target = "createdAt", source = "profile.createdAt")
+    @Mapping(target = "updatedAt", source = "profile.updatedAt")
+    @Mapping(target = "lastLoginAt", source = "user.lastLoginAt")
+    @Mapping(target = "resumeUrl", source = "profile.resumeUrl")
+    @Mapping(target = "certificates", source = "profile.certificates")
     TeacherProfileResponse toResponse(TeacherProfile profile, User user);
 
     List<EducationDto> toEducationDtoList(List<Education> education);
@@ -45,4 +52,8 @@ public interface TeacherProfileMapper {
     List<Education> toEducationList(List<EducationDto> educationDtos);
 
     List<SubjectOfferingResponse> toSubjectOfferingResponseList(List<SubjectOffering> offerings);
+
+    CertificateResponse toCertificateResponse(Certificate certificate);
+
+    List<CertificateResponse> toCertificateResponseList(List<Certificate> certificates);
 }

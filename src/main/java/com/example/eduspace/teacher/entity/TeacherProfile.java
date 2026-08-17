@@ -1,9 +1,6 @@
 package com.example.eduspace.teacher.entity;
 
-import com.example.eduspace.common.entity.Address;
-import com.example.eduspace.common.entity.BaseEntity;
-import com.example.eduspace.common.entity.Education;
-import com.example.eduspace.common.entity.ProfileVerification;
+import com.example.eduspace.common.entity.*;
 import com.example.eduspace.common.enums.Gender;
 
 import lombok.*;
@@ -51,6 +48,11 @@ public class TeacherProfile extends BaseEntity {
 
     private String coverImageUrl;
 
+    private String resumeUrl;
+
+    @Builder.Default
+    private List<Certificate> certificates = List.of();
+
     // ---- Step 2: Educational Details ----
     @Builder.Default
     private List<Education> education = List.of();
@@ -68,4 +70,7 @@ public class TeacherProfile extends BaseEntity {
 
     @Builder.Default
     private int profileCompletionPercent = 0;
+
+    @Builder.Default
+    private long profileViews = 0;
 }

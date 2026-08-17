@@ -1,9 +1,11 @@
 package com.example.eduspace.student.mapper;
 
 import com.example.eduspace.common.dto.AddressDto;
+import com.example.eduspace.common.dto.CertificateResponse;
 import com.example.eduspace.common.dto.EducationDto;
 import com.example.eduspace.common.dto.VerificationResponse;
 import com.example.eduspace.common.entity.Address;
+import com.example.eduspace.common.entity.Certificate;
 import com.example.eduspace.common.entity.Education;
 import com.example.eduspace.common.entity.ProfileVerification;
 import com.example.eduspace.student.dto.response.StudentProfileResponse;
@@ -34,9 +36,16 @@ public interface StudentProfileMapper {
     @Mapping(target = "id", source = "profile.id")
     @Mapping(target = "name", source = "profile.name")
     @Mapping(target = "email", source = "user.email")
+    @Mapping(target = "createdAt", source = "profile.createdAt")
+    @Mapping(target = "updatedAt", source = "profile.updatedAt")
+    @Mapping(target = "lastLoginAt", source = "user.lastLoginAt")
     StudentProfileResponse toResponse(StudentProfile profile, User user);
 
     List<EducationDto> toEducationDtoList(List<Education> education);
 
     List<Education> toEducationList(List<EducationDto> educationDtos);
+
+    CertificateResponse toCertificateResponse(Certificate certificate);
+
+    List<CertificateResponse> toCertificateResponseList(List<Certificate> certificates);
 }

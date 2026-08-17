@@ -8,5 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 @ConfigurationProperties(prefix = "eduspace.google")
 public class GoogleOAuthProperties {
+
     private String clientId;
 }
