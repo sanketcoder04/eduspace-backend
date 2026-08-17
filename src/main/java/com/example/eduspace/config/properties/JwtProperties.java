@@ -8,8 +8,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 @ConfigurationProperties(prefix = "eduspace.jwt")
 public class JwtProperties {
+
     private String secretKey;
+
     private Long accessTokenExpiration;
+
     private Long refreshTokenExpiration;
+
     private Long passwordResetTokenExpiration;
 }

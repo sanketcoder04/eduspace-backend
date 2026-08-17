@@ -1,6 +1,6 @@
 package com.example.eduspace.student.entity;
 
-import com.example.eduspace.common.entity.BaseEntity;
+import com.example.eduspace.common.entity.*;
 import com.example.eduspace.common.enums.Gender;
 
 import lombok.*;
@@ -9,6 +9,8 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -25,13 +27,47 @@ public class StudentProfile extends BaseEntity {
     @Indexed(unique = true)
     private String userId;
 
+    // ---- Step 1: Basic Info ----
     private String name;
 
     private String phoneNumber;
 
+    private Address address;
+
+    private String parentName;
+
+    private String parentPhoneNumber;
+
+    private String parentEmail;
+
     private Gender gender;
 
-    private String profileImage;
+    // ---- Display / LinkedIn-style header ----
+    private String headline;
 
+    private String about;
+
+    private String avatarUrl;
+
+    private String coverImageUrl;
+
+    @Builder.Default
+    private List<Certificate> certificates = List.of();
+
+    // ---- Step 2: Educational Details ----
+    @Builder.Default
+    private List<Education> education = List.of();
+
+    // ---- Step 3: Location + Face Verification ----
+    @Builder.Default
+    private ProfileVerification verification = ProfileVerification.builder().build();
+
+    // ---- Step 4: Review & Submit ----
     private boolean profileCompleted;
+
+    @Builder.Default
+    private int profileCompletionPercent = 0;
+
+    @Builder.Default
+    private long profileViews = 0;
 }
