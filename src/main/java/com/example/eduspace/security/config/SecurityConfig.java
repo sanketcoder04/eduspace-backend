@@ -7,6 +7,7 @@ import com.example.eduspace.security.handler.JwtAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -56,6 +57,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/v1/profile/teacher/**").hasRole("TEACHER")
                         .requestMatchers("/api/v1/profile/student/**").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/opportunities/teaching-openings").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/opportunities/tuition-requirements").hasRole("STUDENT")
                         .anyRequest()
                         .authenticated()
                 )
