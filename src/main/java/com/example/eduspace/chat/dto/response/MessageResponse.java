@@ -25,5 +25,7 @@ public class MessageResponse {
 
     private boolean read;
 
+    private Instant readAt;
+
     private Instant createdAt;
 }
