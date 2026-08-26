@@ -7,6 +7,8 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.time.Instant;
 
@@ -23,12 +25,16 @@ public class Conversation extends BaseEntity {
     private String id;
 
     @Indexed(unique = true)
+    @Field(targetType = FieldType.OBJECT_ID)
     private String applicationId; // 1:1 with an approved Application
 
+    @Field(targetType = FieldType.OBJECT_ID)
     private String opportunityId;
 
+    @Field(targetType = FieldType.OBJECT_ID)
     private String authorId;
 
+    @Field(targetType = FieldType.OBJECT_ID)
     private String applicantId;
 
     private ConversationStatus status;

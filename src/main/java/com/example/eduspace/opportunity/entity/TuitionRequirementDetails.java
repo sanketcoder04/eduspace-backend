@@ -10,9 +10,13 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TuitionRequirementDetails {
+
     private PreferredTutorGender preferredTutorGender;
+
     private PreferredTutorExperienceLevel preferredTutorExperienceLevel;
+
     @Builder.Default
     private int numberOfStudents = 1;
+
     private String additionalRequirements;
 }

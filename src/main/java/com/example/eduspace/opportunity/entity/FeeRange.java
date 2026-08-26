@@ -9,9 +9,13 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FeeRange {
+
     private Double min;
+
     private Double max;
+
     @Builder.Default
     private String currency = "INR";
+
     private FeeUnit unit;
 }

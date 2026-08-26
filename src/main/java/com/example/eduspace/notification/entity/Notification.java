@@ -7,6 +7,8 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.time.Instant;
 
@@ -23,6 +25,7 @@ public class Notification extends BaseEntity {
     private String id;
 
     @Indexed
+    @Field(targetType = FieldType.OBJECT_ID)
     private String recipientId;
 
     private NotificationType type;
@@ -33,6 +36,7 @@ public class Notification extends BaseEntity {
 
     private String referenceType; // "OPPORTUNITY" | "APPLICATION" | "CONVERSATION"
 
+    @Field(targetType = FieldType.OBJECT_ID)
     private String referenceId;
 
     @Indexed
