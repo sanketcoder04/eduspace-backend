@@ -8,6 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.time.Instant;
 
@@ -25,12 +27,15 @@ public class Application extends BaseEntity {
     private String id;
 
     @Indexed
+    @Field(targetType = FieldType.OBJECT_ID)
     private String opportunityId;
 
     @Indexed
+    @Field(targetType = FieldType.OBJECT_ID)
     private String applicantId; // whoever clicked Apply
 
     @Indexed
+    @Field(targetType = FieldType.OBJECT_ID)
     private String authorId;    // owner of the opportunity — denormalized for "received applications" queries
 
     private String message; // optional note sent along with the application

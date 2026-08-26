@@ -7,6 +7,10 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
+
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -21,8 +25,10 @@ public class Message extends BaseEntity {
     private String id;
 
     @Indexed
+    @Field(targetType = FieldType.OBJECT_ID)
     private String conversationId;
 
+    @Field(targetType = FieldType.OBJECT_ID)
     private String senderId; // null for SYSTEM messages
 
     private MessageType type;
@@ -31,4 +37,6 @@ public class Message extends BaseEntity {
 
     @Builder.Default
     private boolean read = false;
+
+    private Instant readAt;
 }
