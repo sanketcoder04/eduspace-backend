@@ -14,7 +14,8 @@ import java.util.List;
 
 @Mapper(
         componentModel = "spring",
-        unmappedTargetPolicy = ReportingPolicy.IGNORE
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        builder = @org.mapstruct.Builder(disableBuilder = true)
 )
 public interface OpportunityMapper {
 
