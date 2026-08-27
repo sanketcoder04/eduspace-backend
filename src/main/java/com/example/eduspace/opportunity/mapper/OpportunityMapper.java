@@ -14,7 +14,8 @@ import java.util.List;
 
 @Mapper(
         componentModel = "spring",
-        unmappedTargetPolicy = ReportingPolicy.IGNORE
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        builder = @org.mapstruct.Builder(disableBuilder = true)
 )
 public interface OpportunityMapper {
 
@@ -29,7 +30,7 @@ public interface OpportunityMapper {
     @Mapping(target = "status", ignore = true)        // set explicitly in the service
     @Mapping(target = "applicationsCount", ignore = true)
     @Mapping(target = "tuitionRequirementDetails", ignore = true)
-    @Mapping(target = "teachingOpeningDetails.seatsFilled", ignore = true)
+    @Mapping(target = "teachingOpeningDetails", ignore = true)
     Opportunity toOpportunity(CreateTeachingOpeningRequest request, User author);
 
     @Mapping(target = "id", ignore = true)

@@ -3,6 +3,8 @@ package com.example.eduspace.chat.service;
 import com.example.eduspace.application.entity.Application;
 import com.example.eduspace.chat.dto.response.ConversationResponse;
 import com.example.eduspace.chat.dto.response.MessageResponse;
+import com.example.eduspace.chat.dto.ws.ReadReceiptEvent;
+import com.example.eduspace.chat.dto.ws.TypingEvent;
 import com.example.eduspace.chat.entity.Conversation;
 import com.example.eduspace.chat.entity.Message;
 import com.example.eduspace.chat.enums.ConversationStatus;
@@ -22,6 +24,7 @@ import com.example.eduspace.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -39,9 +42,11 @@ public class ChatService {
     private final OpportunityService opportunityService;
 
     private final ChatMapper mapper;
+
     private final ProfileLookupService profileLookupService;
 
-    /** Called by ApplicationService with a freshly-saved Application entity — no response needed here. */
+    private final SimpMessagingTemplate messagingTemplate;
+
     public void startConversation(Application application) {
         Conversation conversation = Conversation.builder()
                 .applicationId(application.getId())
@@ -54,6 +59,7 @@ public class ChatService {
         Conversation saved = conversationRepository.save(conversation);
 
         postSystemMessage(saved, "You're both connected — say hello!");
+        pushConversationPreview(saved);
     }
 
     public void closeConversation(String applicationId) {
@@ -64,7 +70,7 @@ public class ChatService {
         });
     }
 
-    public void postContactShareUpdate(com.example.eduspace.application.entity.Application application) {
+    public void postContactShareUpdate(Application application) {
         conversationRepository.findByApplicationId(application.getId()).ifPresent(conversation -> {
             String summary = describeConsent(application);
             Message message = Message.builder()
@@ -73,12 +79,24 @@ public class ChatService {
                     .type(MessageType.CONTACT_SHARE_UPDATE)
                     .content(summary)
                     .build();
-            messageRepository.save(message);
+
+            Message saved = messageRepository.save(message);
             touchConversation(conversation, summary);
+            broadcastMessage(conversation, enrichMessage(saved, null));
         });
     }
 
+    /**
+     * Single entry point for sending a message — called by both the REST
+     * controller and the WebSocket controller, so a message sent from either
+     * transport is broadcast live over WS to every connected device of both
+     * participants. No divergent code paths between "REST send" and "WS send".
+     */
     public MessageResponse sendMessage(User sender, String conversationId, String content) {
+        if (content == null || content.isBlank()) {
+            throw new BadRequestException("Message content cannot be empty.");
+        }
+
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found."));
 
@@ -98,10 +116,16 @@ public class ChatService {
         Message saved = messageRepository.save(message);
         touchConversation(conversation, content);
 
+        MessageResponse response = enrichMessage(saved, sender.getName());
+        broadcastMessage(conversation, response);
+        pushConversationPreview(conversation);
+
         String recipientId = conversation.getAuthorId().equals(sender.getId())
                 ? conversation.getApplicantId()
                 : conversation.getAuthorId();
 
+        // Persisted notification stays even though delivery is instant over WS —
+        // it backs the notification bell/history for when the recipient is offline.
         notificationService.notify(
                 recipientId,
                 NotificationType.NEW_MESSAGE,
@@ -111,7 +135,53 @@ public class ChatService {
                 conversationId
         );
 
-        return enrichMessage(saved, sender.getName());
+        return response;
+    }
+
+    /** Marks every message the other side sent (still unread) as read, and tells them live. */
+    public void markRead(User reader, String conversationId) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found."));
+
+        assertParticipant(conversation, reader.getId());
+
+        var unread = messageRepository.findByConversationIdAndSenderIdNotAndReadFalse(conversationId, reader.getId());
+        if (unread.isEmpty()) return;
+
+        Instant now = Instant.now();
+        unread.forEach(message -> {
+            message.setRead(true);
+            message.setReadAt(now);
+        });
+        messageRepository.saveAll(unread);
+
+        String otherPartyId = conversation.getAuthorId().equals(reader.getId())
+                ? conversation.getApplicantId()
+                : conversation.getAuthorId();
+
+        messagingTemplate.convertAndSendToUser(
+                otherPartyId,
+                "/queue/read-receipts",
+                new ReadReceiptEvent(conversationId, reader.getId(), now)
+        );
+    }
+
+    /** Broadcasts a typing/stopped-typing signal to the other participant only. */
+    public void notifyTyping(User user, String conversationId, boolean typing) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found."));
+
+        assertParticipant(conversation, user.getId());
+
+        String peerId = conversation.getAuthorId().equals(user.getId())
+                ? conversation.getApplicantId()
+                : conversation.getAuthorId();
+
+        messagingTemplate.convertAndSendToUser(
+                peerId,
+                "/queue/typing",
+                new TypingEvent(conversationId, user.getId(), typing)
+        );
     }
 
     public Page<MessageResponse> getMessages(User requester, String conversationId, Pageable pageable) {
@@ -122,10 +192,7 @@ public class ChatService {
 
         return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable)
                 .map(message -> {
-                    // SYSTEM / CONTACT_SHARE_UPDATE messages have no sender to resolve.
-                    if (message.getSenderId() == null) {
-                        return enrichMessage(message, null);
-                    }
+                    if (message.getSenderId() == null) return enrichMessage(message, null);
                     ProfileLookupService.ProfileSummary sender = profileLookupService.getSummary(message.getSenderId());
                     return enrichMessage(message, sender.name());
                 });
@@ -149,8 +216,10 @@ public class ChatService {
                 .type(MessageType.SYSTEM)
                 .content(content)
                 .build();
-        messageRepository.save(message);
+
+        Message saved = messageRepository.save(message);
         touchConversation(conversation, content);
+        broadcastMessage(conversation, enrichMessage(saved, null));
     }
 
     private void touchConversation(Conversation conversation, String preview) {
@@ -159,7 +228,20 @@ public class ChatService {
         conversationRepository.save(conversation);
     }
 
-    private String describeConsent(com.example.eduspace.application.entity.Application application) {
+    /** Delivers a new message live to both participants' active sessions (every open tab/device each). */
+    private void broadcastMessage(Conversation conversation, MessageResponse response) {
+        messagingTemplate.convertAndSendToUser(conversation.getAuthorId(), "/queue/messages", response);
+        messagingTemplate.convertAndSendToUser(conversation.getApplicantId(), "/queue/messages", response);
+    }
+
+    /** Pushes an updated preview so both sides' conversation list refreshes without a refetch. */
+    private void pushConversationPreview(Conversation conversation) {
+        ConversationResponse response = enrichConversation(conversation);
+        messagingTemplate.convertAndSendToUser(conversation.getAuthorId(), "/queue/conversations", response);
+        messagingTemplate.convertAndSendToUser(conversation.getApplicantId(), "/queue/conversations", response);
+    }
+
+    private String describeConsent(Application application) {
         boolean phone = application.getContactShareConsent().isPhoneShared();
         boolean email = application.getContactShareConsent().isEmailShared();
 
