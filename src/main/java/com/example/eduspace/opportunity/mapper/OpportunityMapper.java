@@ -30,7 +30,7 @@ public interface OpportunityMapper {
     @Mapping(target = "status", ignore = true)        // set explicitly in the service
     @Mapping(target = "applicationsCount", ignore = true)
     @Mapping(target = "tuitionRequirementDetails", ignore = true)
-    @Mapping(target = "teachingOpeningDetails", ignore = true)
+    @Mapping(target = "teachingOpeningDetails.seatsFilled", ignore = true)
     Opportunity toOpportunity(CreateTeachingOpeningRequest request, User author);
 
     @Mapping(target = "id", ignore = true)
