@@ -14,12 +14,17 @@ import com.example.eduspace.opportunity.enums.OpportunityStatus;
 import com.example.eduspace.opportunity.enums.PostType;
 import com.example.eduspace.opportunity.mapper.OpportunityMapper;
 import com.example.eduspace.opportunity.repository.OpportunityRepository;
+import com.example.eduspace.teacher.entity.TeacherProfile;
 import com.example.eduspace.teacher.repository.TeacherRepository;
 import com.example.eduspace.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,14 +43,17 @@ public class OpportunityService {
             throw new ForbiddenException("Only teachers can post a teaching opening.");
         }
 
-        boolean isVerified = teacherRepository.findByUserId(author.getId())
-                .map(profile -> profile.getVerification() != null
-                        && profile.getVerification().getStatus() == VerificationStatus.VERIFIED)
-                .orElse(false);
+        TeacherProfile teacherProfile = teacherRepository.findByUserId(author.getId())
+                .orElseThrow(() -> new ForbiddenException("Complete your teacher profile before posting."));
+
+        boolean isVerified = teacherProfile.getVerification() != null
+                && teacherProfile.getVerification().getStatus() == VerificationStatus.VERIFIED;
 
         if (!isVerified) {
             throw new ForbiddenException("Complete profile verification before posting a teaching opening.");
         }
+
+        validateSubjectsAgainstOfferings(teacherProfile, request.getSubjects());
         validateLocation(request.getMode(), request.getLocation());
 
         Opportunity opportunity = mapper.toOpportunity(request, author);
@@ -153,5 +161,29 @@ public class OpportunityService {
         response.setAuthorAvatarUrl(author.avatarUrl());
 
         return response;
+    }
+
+    /**
+     * A teacher may only advertise subjects already declared in their profile's
+     * subjectOfferings — this keeps postings trustworthy (no claiming to teach
+     * something never verified/reviewed on the profile) and pushes teachers to
+     * keep their subject list current rather than let postings drift ahead of it.
+     */
+    private void validateSubjectsAgainstOfferings(TeacherProfile teacherProfile, List<String> requestedSubjects) {
+        Set<String> offeredSubjects = teacherProfile.getSubjectOfferings().stream()
+                .map(offering -> offering.getSubjectName().trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        List<String> notOffered = requestedSubjects.stream()
+                .filter(subject -> !offeredSubjects.contains(subject.trim().toLowerCase()))
+                .toList();
+
+        if (!notOffered.isEmpty()) {
+            throw new BadRequestException(
+                    "These subjects aren't in your profile's subject offerings yet: "
+                            + String.join(", ", notOffered)
+                            + ". Add them to your profile before posting."
+            );
+        }
     }
 }
