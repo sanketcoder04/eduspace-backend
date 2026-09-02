@@ -71,19 +71,24 @@ public class ApplicationController {
         );
     }
 
-    @PatchMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<ApplicationResponse>> approve(
+    @PatchMapping("/{id}/approve-to-chat")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> approveToChat(
             @AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable String id) {
-
-        ApplicationResponse approved = applicationService.approve(userDetails.user(), id);
 
         return ResponseEntity.ok(
                 ApiResponse.<ApplicationResponse>builder()
-                        .success(true)
-                        .message("Application approved.")
-                        .data(approved)
-                        .build()
-        );
+                        .success(true).message("Application moved to chat.")
+                        .data(applicationService.approveToChat(userDetails.user(), id)).build());
+    }
+
+    @PatchMapping("/{id}/finalize")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> finalize(
+            @AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable String id) {
+
+        return ResponseEntity.ok(
+                ApiResponse.<ApplicationResponse>builder()
+                        .success(true).message("Application finalized.")
+                        .data(applicationService.finalize(userDetails.user(), id)).build());
     }
 
     @PatchMapping("/{id}/reject")

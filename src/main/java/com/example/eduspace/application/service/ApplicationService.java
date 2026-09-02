@@ -2,7 +2,6 @@ package com.example.eduspace.application.service;
 
 import com.example.eduspace.application.dto.request.ContactShareConsentRequest;
 import com.example.eduspace.application.dto.response.ApplicationResponse;
-import com.example.eduspace.application.dto.response.ContactShareConsentResponse;
 import com.example.eduspace.application.entity.Application;
 import com.example.eduspace.application.entity.ContactShareConsent;
 import com.example.eduspace.application.enums.ApplicationStatus;
@@ -36,19 +35,14 @@ import java.util.List;
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
-
     private final OpportunityService opportunityService;
-
     private final ChatService chatService;
-
     private final NotificationService notificationService;
-
     private final ApplicationMapper mapper;
-
     private final ProfileLookupService profileLookupService;
 
     private static final List<ApplicationStatus> ACTIVE_STATUSES =
-            List.of(ApplicationStatus.PENDING, ApplicationStatus.APPROVED);
+            List.of(ApplicationStatus.PENDING, ApplicationStatus.IN_DISCUSSION, ApplicationStatus.APPROVED);
 
     public ApplicationResponse apply(User applicant, String opportunityId, String message) {
         Opportunity opportunity = opportunityService.getEntity(opportunityId);
@@ -102,12 +96,51 @@ public class ApplicationService {
         return enrich(saved, opportunity.getTitle());
     }
 
-    @Transactional
-    public ApplicationResponse approve(User author, String applicationId) {
+    /**
+     * Step 1 of the author's decision: review the applicant's profile and
+     * open a chat with them. This does NOT finalize anything — no seat is
+     * filled, the opportunity's status/availability is untouched. Multiple
+     * applicants can be IN_DISCUSSION at once (e.g. the author is talking to
+     * several candidates before deciding).
+     */
+    public ApplicationResponse approveToChat(User author, String applicationId) {
         Application application = getOwnedByAuthor(author, applicationId);
 
         if (application.getStatus() != ApplicationStatus.PENDING) {
-            throw new BadRequestException("Only a pending application can be approved.");
+            throw new BadRequestException("Only a pending application can be moved to chat.");
+        }
+
+        application.setStatus(ApplicationStatus.IN_DISCUSSION);
+        application.setRespondedAt(Instant.now());
+        Application saved = applicationRepository.save(application);
+
+        chatService.startConversation(saved);
+
+        Opportunity opportunity = opportunityService.getEntity(application.getOpportunityId());
+
+        notificationService.notify(
+                application.getApplicantId(),
+                NotificationType.APPLICATION_MOVED_TO_CHAT,
+                "You're in! Let's chat",
+                "The author of \"" + opportunity.getTitle() + "\" wants to discuss further. You can now chat.",
+                "APPLICATION",
+                saved.getId()
+        );
+
+        return enrich(saved, opportunity.getTitle());
+    }
+
+    /**
+     * Step 2 — the actual finalize/deal-completed decision, only reachable
+     * after a discussion has happened. This is the ONLY place a seat gets
+     * filled and the opportunity's availability actually changes.
+     */
+    @Transactional
+    public ApplicationResponse finalize(User author, String applicationId) {
+        Application application = getOwnedByAuthor(author, applicationId);
+
+        if (application.getStatus() != ApplicationStatus.IN_DISCUSSION) {
+            throw new BadRequestException("Only an application currently in discussion can be finalized.");
         }
 
         application.setStatus(ApplicationStatus.APPROVED);
@@ -117,13 +150,11 @@ public class ApplicationService {
         Opportunity opportunity = opportunityService.getEntity(application.getOpportunityId());
         fillSeat(opportunity);
 
-        chatService.startConversation(saved);
-
         notificationService.notify(
                 application.getApplicantId(),
                 NotificationType.APPLICATION_APPROVED,
-                "Application approved",
-                "Your application for \"" + opportunity.getTitle() + "\" was approved. You can now chat.",
+                "Application finalized",
+                "Your application for \"" + opportunity.getTitle() + "\" has been finalized. Congratulations!",
                 "APPLICATION",
                 saved.getId()
         );
@@ -140,18 +171,19 @@ public class ApplicationService {
             throw new BadRequestException("This application has already been closed.");
         }
 
-        boolean wasApproved = application.getStatus() == ApplicationStatus.APPROVED;
+        boolean wasFinalized = application.getStatus() == ApplicationStatus.APPROVED;
 
         application.setStatus(ApplicationStatus.REJECTED);
         application.setDecisionReason(reason);
         application.setRespondedAt(Instant.now());
         Application saved = applicationRepository.save(application);
 
-        Opportunity opportunity = opportunityService.getEntity(application.getOpportunityId());
-
-        if (wasApproved) {
-            freeSeatAndCloseChat(saved, opportunity);
+        if (wasFinalized) {
+            freeSeat(saved);
         }
+        // Safe no-op if this application never reached IN_DISCUSSION/APPROVED
+        // and therefore never had a conversation created.
+        chatService.closeConversation(saved.getId());
 
         notificationService.notify(
                 application.getApplicantId(),
@@ -162,6 +194,7 @@ public class ApplicationService {
                 saved.getId()
         );
 
+        Opportunity opportunity = opportunityService.getEntity(application.getOpportunityId());
         return enrich(saved, opportunity.getTitle());
     }
 
@@ -175,17 +208,16 @@ public class ApplicationService {
             throw new BadRequestException("This application has already been closed.");
         }
 
-        boolean wasApproved = application.getStatus() == ApplicationStatus.APPROVED;
+        boolean wasFinalized = application.getStatus() == ApplicationStatus.APPROVED;
 
         application.setStatus(ApplicationStatus.WITHDRAWN);
         application.setRespondedAt(Instant.now());
         Application saved = applicationRepository.save(application);
 
-        Opportunity opportunity = opportunityService.getEntity(application.getOpportunityId());
-
-        if (wasApproved) {
-            freeSeatAndCloseChat(saved, opportunity);
+        if (wasFinalized) {
+            freeSeat(saved);
         }
+        chatService.closeConversation(saved.getId());
 
         notificationService.notify(
                 application.getAuthorId(),
@@ -196,14 +228,18 @@ public class ApplicationService {
                 saved.getId()
         );
 
+        Opportunity opportunity = opportunityService.getEntity(application.getOpportunityId());
         return enrich(saved, opportunity.getTitle());
     }
 
     public ApplicationResponse updateContactConsent(User author, String applicationId, ContactShareConsentRequest request) {
         Application application = getOwnedByAuthor(author, applicationId);
 
-        if (application.getStatus() != ApplicationStatus.APPROVED) {
-            throw new BadRequestException("Contact details can only be shared for an approved application.");
+        // Contact sharing is available as soon as the chat is open — no need
+        // to wait until the deal is finalized.
+        if (application.getStatus() != ApplicationStatus.IN_DISCUSSION
+                && application.getStatus() != ApplicationStatus.APPROVED) {
+            throw new BadRequestException("Contact details can only be shared once a chat is open.");
         }
 
         application.setContactShareConsent(ContactShareConsent.builder()
@@ -213,14 +249,13 @@ public class ApplicationService {
                 .build());
 
         Application saved = applicationRepository.save(application);
-
         chatService.postContactShareUpdate(saved);
 
         notificationService.notify(
                 application.getApplicantId(),
                 NotificationType.CONTACT_SHARED,
                 "Contact details updated",
-                "The author updated what contact details are shared with you.",
+                author.getName() + " updated what contact details are shared with you.",
                 "APPLICATION",
                 saved.getId()
         );
@@ -239,7 +274,6 @@ public class ApplicationService {
                 .map(app -> enrich(app, resolveTitleSafely(app)));
     }
 
-    /** Internal accessor for ChatService, which needs the raw entity to validate participants. */
     public Application getEntity(String id) {
         return applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found."));
@@ -254,15 +288,14 @@ public class ApplicationService {
         }
     }
 
-    private void freeSeatAndCloseChat(Application application, Opportunity opportunity) {
+    private void freeSeat(Application application) {
+        Opportunity opportunity = opportunityService.getEntity(application.getOpportunityId());
         if (opportunity.getClassFormat() == ClassFormat.PERSONALIZED) {
             opportunity.setStatus(OpportunityStatus.OPEN);
             opportunityService.save(opportunity);
         } else {
             opportunityService.adjustSeatState(opportunity, -1);
         }
-
-        chatService.closeConversation(application.getId());
     }
 
     private Application getOwnedByAuthor(User author, String applicationId) {
@@ -271,7 +304,6 @@ public class ApplicationService {
     }
 
     private String resolveTitleSafely(Application application) {
-        // Used for list views where a missing/deleted opportunity shouldn't 500 the whole page.
         try {
             return opportunityService.getEntity(application.getOpportunityId()).getTitle();
         } catch (ResourceNotFoundException ex) {
@@ -287,13 +319,13 @@ public class ApplicationService {
         response.setApplicantName(applicant.name());
         response.setApplicantAvatarUrl(applicant.avatarUrl());
 
-        ContactShareConsentResponse consent = response.getContactShareConsent();
-
+        var consent = response.getContactShareConsent();
         if (consent.isPhoneShared() || consent.isEmailShared()) {
             ProfileLookupService.ContactInfo contact = profileLookupService.getContactInfo(application.getAuthorId());
             if (consent.isPhoneShared()) consent.setPhoneNumber(contact.phoneNumber());
             if (consent.isEmailShared()) consent.setEmail(contact.email());
         }
+
         return response;
     }
 }
