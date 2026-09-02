@@ -2,6 +2,7 @@ package com.example.eduspace.application.service;
 
 import com.example.eduspace.application.dto.request.ContactShareConsentRequest;
 import com.example.eduspace.application.dto.response.ApplicationResponse;
+import com.example.eduspace.application.dto.response.ContactShareConsentResponse;
 import com.example.eduspace.application.entity.Application;
 import com.example.eduspace.application.entity.ContactShareConsent;
 import com.example.eduspace.application.enums.ApplicationStatus;
@@ -286,6 +287,13 @@ public class ApplicationService {
         response.setApplicantName(applicant.name());
         response.setApplicantAvatarUrl(applicant.avatarUrl());
 
+        ContactShareConsentResponse consent = response.getContactShareConsent();
+
+        if (consent.isPhoneShared() || consent.isEmailShared()) {
+            ProfileLookupService.ContactInfo contact = profileLookupService.getContactInfo(application.getAuthorId());
+            if (consent.isPhoneShared()) consent.setPhoneNumber(contact.phoneNumber());
+            if (consent.isEmailShared()) consent.setEmail(contact.email());
+        }
         return response;
     }
 }

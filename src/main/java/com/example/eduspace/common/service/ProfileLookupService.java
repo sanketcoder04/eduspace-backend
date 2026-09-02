@@ -1,7 +1,9 @@
 package com.example.eduspace.common.service;
 
 import com.example.eduspace.common.enums.Role;
+import com.example.eduspace.student.entity.StudentProfile;
 import com.example.eduspace.student.repository.StudentRepository;
+import com.example.eduspace.teacher.entity.TeacherProfile;
 import com.example.eduspace.teacher.repository.TeacherRepository;
 import com.example.eduspace.user.entity.User;
 import com.example.eduspace.user.repository.UserRepository;
@@ -30,6 +32,8 @@ public class ProfileLookupService {
 
     public record ProfileSummary(String name, String avatarUrl) {}
 
+    public record ContactInfo(String email, String phoneNumber) {}
+
     public ProfileSummary getSummary(String userId) {
         Optional<User> userOpt = userRepository.findById(userId);
 
@@ -52,5 +56,17 @@ public class ProfileLookupService {
         }
 
         return new ProfileSummary(user.getName(), null);
+    }
+
+    public ContactInfo getContactInfo(String userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return new ContactInfo(null, null);
+
+        String phoneNumber = switch (user.getRole()) {
+            case TEACHER -> teacherRepository.findByUserId(userId).map(TeacherProfile::getPhoneNumber).orElse(null);
+            case STUDENT -> studentRepository.findByUserId(userId).map(StudentProfile::getPhoneNumber).orElse(null);
+        };
+
+        return new ContactInfo(user.getEmail(), phoneNumber);
     }
 }

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +42,7 @@ public class ApplicationController {
     @GetMapping("/sent")
     public ResponseEntity<ApiResponse<Page<ApplicationResponse>>> getSent(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<ApplicationResponse> sentApplications = applicationService.getSentApplications(userDetails.user(), pageable);
 
@@ -57,7 +58,7 @@ public class ApplicationController {
     @GetMapping("/received")
     public ResponseEntity<ApiResponse<Page<ApplicationResponse>>> getReceived(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<ApplicationResponse> receivedApplications = applicationService.getReceivedApplications(userDetails.user(), pageable);
 

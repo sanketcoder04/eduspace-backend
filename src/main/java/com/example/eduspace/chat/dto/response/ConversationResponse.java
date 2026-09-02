@@ -35,6 +35,8 @@ public class ConversationResponse {
 
     private String lastMessagePreview;
 
+    private int unreadCount;
+
     private Instant lastMessageAt;
 
     private Instant createdAt;

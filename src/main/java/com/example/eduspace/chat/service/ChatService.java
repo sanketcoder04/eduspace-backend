@@ -12,12 +12,11 @@ import com.example.eduspace.chat.enums.MessageType;
 import com.example.eduspace.chat.mapper.ChatMapper;
 import com.example.eduspace.chat.repository.ConversationRepository;
 import com.example.eduspace.chat.repository.MessageRepository;
+import com.example.eduspace.chat.websocket.PresenceService;
 import com.example.eduspace.common.service.ProfileLookupService;
 import com.example.eduspace.exception.BadRequestException;
 import com.example.eduspace.exception.ForbiddenException;
 import com.example.eduspace.exception.ResourceNotFoundException;
-import com.example.eduspace.notification.enums.NotificationType;
-import com.example.eduspace.notification.service.NotificationService;
 import com.example.eduspace.opportunity.entity.Opportunity;
 import com.example.eduspace.opportunity.service.OpportunityService;
 import com.example.eduspace.user.entity.User;
@@ -37,8 +36,6 @@ public class ChatService {
 
     private final MessageRepository messageRepository;
 
-    private final NotificationService notificationService;
-
     private final OpportunityService opportunityService;
 
     private final ChatMapper mapper;
@@ -46,6 +43,12 @@ public class ChatService {
     private final ProfileLookupService profileLookupService;
 
     private final SimpMessagingTemplate messagingTemplate;
+
+    private final PresenceService presenceService;
+
+    // NotificationService intentionally NOT used for NEW_MESSAGE anymore —
+    // chat has its own unread-badge system now; the bell stays reserved for
+    // application lifecycle events only.
 
     public void startConversation(Application application) {
         Conversation conversation = Conversation.builder()
@@ -59,7 +62,10 @@ public class ChatService {
         Conversation saved = conversationRepository.save(conversation);
 
         postSystemMessage(saved, "You're both connected — say hello!");
-        pushConversationPreview(saved);
+        pushConversationPreviewToBoth(saved);
+
+        presenceService.sendCurrentPresenceSnapshot(saved.getAuthorId());
+        presenceService.sendCurrentPresenceSnapshot(saved.getApplicantId());
     }
 
     public void closeConversation(String applicationId) {
@@ -86,12 +92,6 @@ public class ChatService {
         });
     }
 
-    /**
-     * Single entry point for sending a message — called by both the REST
-     * controller and the WebSocket controller, so a message sent from either
-     * transport is broadcast live over WS to every connected device of both
-     * participants. No divergent code paths between "REST send" and "WS send".
-     */
     public MessageResponse sendMessage(User sender, String conversationId, String content) {
         if (content == null || content.isBlank()) {
             throw new BadRequestException("Message content cannot be empty.");
@@ -118,27 +118,15 @@ public class ChatService {
 
         MessageResponse response = enrichMessage(saved, sender.getName());
         broadcastMessage(conversation, response);
-        pushConversationPreview(conversation);
+        pushConversationPreviewToBoth(conversation);
 
-        String recipientId = conversation.getAuthorId().equals(sender.getId())
-                ? conversation.getApplicantId()
-                : conversation.getAuthorId();
-
-        // Persisted notification stays even though delivery is instant over WS —
-        // it backs the notification bell/history for when the recipient is offline.
-        notificationService.notify(
-                recipientId,
-                NotificationType.NEW_MESSAGE,
-                "New message",
-                content.length() > 80 ? content.substring(0, 80) + "…" : content,
-                "CONVERSATION",
-                conversationId
-        );
+        // No NotificationService call here anymore — the recipient's unread
+        // badge (on the Chat nav icon and the conversation list) is the
+        // live signal for a new message now, not a Notification document.
 
         return response;
     }
 
-    /** Marks every message the other side sent (still unread) as read, and tells them live. */
     public void markRead(User reader, String conversationId) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found."));
@@ -164,9 +152,16 @@ public class ChatService {
                 "/queue/read-receipts",
                 new ReadReceiptEvent(conversationId, reader.getId(), now)
         );
+
+        // The reader's own unread badge for this conversation should drop
+        // to zero immediately — push them a fresh conversation snapshot too.
+        messagingTemplate.convertAndSendToUser(
+                reader.getId(),
+                "/queue/conversations",
+                enrichConversation(conversation, reader.getId())
+        );
     }
 
-    /** Broadcasts a typing/stopped-typing signal to the other participant only. */
     public void notifyTyping(User user, String conversationId, boolean typing) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found."));
@@ -200,7 +195,7 @@ public class ChatService {
 
     public Page<ConversationResponse> getMyConversations(User user, Pageable pageable) {
         return conversationRepository.findByAuthorIdOrApplicantId(user.getId(), user.getId(), pageable)
-                .map(this::enrichConversation);
+                .map(conversation -> enrichConversation(conversation, user.getId()));
     }
 
     private void assertParticipant(Conversation conversation, String userId) {
@@ -228,17 +223,17 @@ public class ChatService {
         conversationRepository.save(conversation);
     }
 
-    /** Delivers a new message live to both participants' active sessions (every open tab/device each). */
     private void broadcastMessage(Conversation conversation, MessageResponse response) {
         messagingTemplate.convertAndSendToUser(conversation.getAuthorId(), "/queue/messages", response);
         messagingTemplate.convertAndSendToUser(conversation.getApplicantId(), "/queue/messages", response);
     }
 
-    /** Pushes an updated preview so both sides' conversation list refreshes without a refetch. */
-    private void pushConversationPreview(Conversation conversation) {
-        ConversationResponse response = enrichConversation(conversation);
-        messagingTemplate.convertAndSendToUser(conversation.getAuthorId(), "/queue/conversations", response);
-        messagingTemplate.convertAndSendToUser(conversation.getApplicantId(), "/queue/conversations", response);
+    /** unreadCount differs per viewer, so author and applicant each get their OWN snapshot, not a shared broadcast. */
+    private void pushConversationPreviewToBoth(Conversation conversation) {
+        messagingTemplate.convertAndSendToUser(
+                conversation.getAuthorId(), "/queue/conversations", enrichConversation(conversation, conversation.getAuthorId()));
+        messagingTemplate.convertAndSendToUser(
+                conversation.getApplicantId(), "/queue/conversations", enrichConversation(conversation, conversation.getApplicantId()));
     }
 
     private String describeConsent(Application application) {
@@ -246,8 +241,22 @@ public class ChatService {
         boolean email = application.getContactShareConsent().isEmailShared();
 
         if (!phone && !email) return "The author has not shared contact details yet.";
-        if (phone && email) return "The author shared their phone number and email.";
-        return phone ? "The author shared their phone number." : "The author shared their email.";
+
+        ProfileLookupService.ContactInfo contact = profileLookupService.getContactInfo(application.getAuthorId());
+        StringBuilder message = new StringBuilder("The author shared their ");
+
+        if (phone && contact.phoneNumber() != null) {
+            message.append("phone number (").append(contact.phoneNumber()).append(")");
+        }
+        if (phone && email && contact.phoneNumber() != null && contact.email() != null) {
+            message.append(" and ");
+        }
+        if (email && contact.email() != null) {
+            message.append("email (").append(contact.email()).append(")");
+        }
+        message.append(".");
+
+        return message.toString();
     }
 
     private MessageResponse enrichMessage(Message message, String senderName) {
@@ -256,7 +265,7 @@ public class ChatService {
         return response;
     }
 
-    private ConversationResponse enrichConversation(Conversation conversation) {
+    private ConversationResponse enrichConversation(Conversation conversation, String viewerId) {
         ConversationResponse response = mapper.toResponse(conversation);
 
         ProfileLookupService.ProfileSummary author = profileLookupService.getSummary(conversation.getAuthorId());
@@ -266,6 +275,10 @@ public class ChatService {
         ProfileLookupService.ProfileSummary applicant = profileLookupService.getSummary(conversation.getApplicantId());
         response.setApplicantName(applicant.name());
         response.setApplicantAvatarUrl(applicant.avatarUrl());
+
+        response.setUnreadCount(
+                (int) messageRepository.countByConversationIdAndSenderIdNotAndReadFalse(conversation.getId(), viewerId)
+        );
 
         try {
             Opportunity opportunity = opportunityService.getEntity(conversation.getOpportunityId());
