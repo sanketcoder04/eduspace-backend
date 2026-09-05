@@ -4,6 +4,7 @@ import com.example.eduspace.chat.dto.ws.SendMessageFrame;
 import com.example.eduspace.chat.dto.ws.TypingFrame;
 import com.example.eduspace.chat.dto.ws.WsErrorEvent;
 import com.example.eduspace.chat.service.ChatService;
+import com.example.eduspace.chat.websocket.PresenceService;
 import com.example.eduspace.user.entity.User;
 import com.example.eduspace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,8 @@ public class WebSocketChatController {
     private final ChatService chatService;
 
     private final UserRepository userRepository;
+
+    private final PresenceService presenceService;
 
     // Client publishes to: /app/conversations/{conversationId}/send
     @MessageMapping("/conversations/{conversationId}/send")
@@ -52,5 +55,10 @@ public class WebSocketChatController {
     private User resolveUser(Principal principal) {
         return userRepository.findById(principal.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
+    }
+
+    @MessageMapping("/presence/refresh")
+    public void refreshPresence(Principal principal) {
+        presenceService.sendCurrentPresenceSnapshot(principal.getName());
     }
 }

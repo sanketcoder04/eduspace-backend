@@ -37,6 +37,8 @@ public class PresenceService {
         if (wasOffline) {
             broadcastPresence(userId, true);
         }
+
+        sendCurrentPresenceSnapshot(userId);
     }
 
     @EventListener
@@ -68,6 +70,28 @@ public class PresenceService {
 
         for (String peerId : peers) {
             messagingTemplate.convertAndSendToUser(peerId, "/queue/presence", payload);
+        }
+    }
+
+    public void sendCurrentPresenceSnapshot(String userId) {
+        Set<String> peers = participantLookup.findConversationPeers(userId);
+
+        for (String peerId : peers) {
+            if (isOnline(peerId)) {
+                // Tell the newly-connected user this peer is already online...
+                messagingTemplate.convertAndSendToUser(
+                        userId, "/queue/presence", new PresenceEvent(peerId, true, Instant.now()));
+            }
+        }
+
+        // ...and tell every already-online peer that THIS user just came online,
+        // covering the case where their conversation didn't exist when they
+        // themselves connected.
+        if (isOnline(userId)) {
+            for (String peerId : peers) {
+                messagingTemplate.convertAndSendToUser(
+                        peerId, "/queue/presence", new PresenceEvent(userId, true, Instant.now()));
+            }
         }
     }
 }
