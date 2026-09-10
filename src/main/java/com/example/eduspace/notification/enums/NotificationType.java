@@ -9,4 +9,8 @@ public enum NotificationType {
     NEW_MESSAGE,
     CONTACT_SHARED,
     NEW_FOLLOWER,
+    POST_LIKED,
+    POST_COMMENTED,
+    POST_MENTION,
+    COMMENT_MENTION
 }
