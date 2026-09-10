@@ -1,7 +1,9 @@
 package com.example.eduspace.follow.service;
 
+import com.example.eduspace.common.service.ProfileLookupService;
 import com.example.eduspace.exception.BadRequestException;
 import com.example.eduspace.exception.ResourceNotFoundException;
+import com.example.eduspace.follow.dto.response.FollowedUserResponse;
 import com.example.eduspace.follow.entity.Follow;
 import com.example.eduspace.follow.entity.FollowStats;
 import com.example.eduspace.follow.repository.FollowRepository;
@@ -11,6 +13,8 @@ import com.example.eduspace.notification.service.NotificationService;
 import com.example.eduspace.user.entity.User;
 import com.example.eduspace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +29,8 @@ public class FollowService {
     private final UserRepository userRepository;
 
     private final NotificationService notificationService;
+
+    private final ProfileLookupService profileLookupService;
 
     @Transactional
     public void follow(User follower, String targetUserId) {
@@ -72,6 +78,16 @@ public class FollowService {
                 .orElseGet(() -> FollowStats.builder().id(userId).userId(userId).build());
     }
 
+    public Page<FollowedUserResponse> getFollowers(String userId, Pageable pageable) {
+        return followRepository.findByFollowingId(userId, pageable)
+                .map(follow -> toFollowedUserResponse(follow.getFollowerId(), follow.getCreatedAt()));
+    }
+
+    public Page<FollowedUserResponse> getFollowing(String userId, Pageable pageable) {
+        return followRepository.findByFollowerId(userId, pageable)
+                .map(follow -> toFollowedUserResponse(follow.getFollowingId(), follow.getCreatedAt()));
+    }
+
     private void adjustStats(String userId, String field, int delta) {
         FollowStats stats = followStatsRepository.findByUserId(userId)
                 .orElseGet(() -> FollowStats.builder().id(userId).userId(userId).build());
@@ -83,5 +99,18 @@ public class FollowService {
             stats.setFollowingCount(Math.max(0, stats.getFollowingCount() + delta));
         }
         followStatsRepository.save(stats);
+    }
+
+    private FollowedUserResponse toFollowedUserResponse(String otherUserId, java.time.Instant followedAt) {
+        var summary = profileLookupService.getSummary(otherUserId);
+        var role = userRepository.findById(otherUserId).map(User::getRole).orElse(null);
+
+        return FollowedUserResponse.builder()
+                .userId(otherUserId)
+                .name(summary.name())
+                .avatarUrl(summary.avatarUrl())
+                .role(role)
+                .followedAt(followedAt)
+                .build();
     }
 }

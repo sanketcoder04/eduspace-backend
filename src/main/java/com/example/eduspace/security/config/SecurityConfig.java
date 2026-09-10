@@ -63,6 +63,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/google/complete-registration"
                         ).permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/ws/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/profile/teacher/view/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/profile/student/view/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/*/summary").authenticated()
                         .requestMatchers("/api/v1/profile/teacher/**").hasRole("TEACHER")
                         .requestMatchers("/api/v1/profile/student/**").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.POST, "/api/v1/opportunities/teaching-openings").hasRole("TEACHER")

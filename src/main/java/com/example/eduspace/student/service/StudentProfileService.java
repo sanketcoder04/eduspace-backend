@@ -14,6 +14,7 @@ import com.example.eduspace.student.entity.StudentProfile;
 import com.example.eduspace.student.mapper.StudentProfileMapper;
 import com.example.eduspace.student.repository.StudentRepository;
 import com.example.eduspace.user.entity.User;
+import com.example.eduspace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,8 @@ public class StudentProfileService {
     private final StudentRepository studentRepository;
 
     private final StudentProfileMapper mapper;
+
+    private final UserRepository userRepository;
 
     public StudentProfileResponse getMyProfile(User user) {
         return mapper.toResponse(getOrCreateProfile(user), user);
@@ -144,6 +147,30 @@ public class StudentProfileService {
         profile.setCertificates(certificates);
 
         return save(profile, user);
+    }
+
+    public StudentProfileResponse getProfileForViewing(User viewer, String targetUserId) {
+        StudentProfile profile = studentRepository.findByUserId(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found."));
+
+        User owner = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        boolean isOwner = viewer.getId().equals(targetUserId);
+
+        if (!isOwner) {
+            profile.setProfileViews(profile.getProfileViews() + 1);
+            studentRepository.save(profile);
+        }
+        StudentProfileResponse response = mapper.toResponse(profile, owner);
+
+        if (!isOwner) {
+            response.setEmail(null);
+            response.setPhoneNumber(null);
+            response.setParentPhoneNumber(null);
+            response.setParentEmail(null);
+        }
+        return response;
     }
 
     private StudentProfile getOrCreateProfile(User user) {

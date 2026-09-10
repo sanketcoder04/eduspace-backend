@@ -1,10 +1,15 @@
 package com.example.eduspace.follow.controller;
 
 import com.example.eduspace.common.dto.ApiResponse;
+import com.example.eduspace.exception.ForbiddenException;
+import com.example.eduspace.follow.dto.response.FollowedUserResponse;
 import com.example.eduspace.follow.entity.FollowStats;
 import com.example.eduspace.follow.service.FollowService;
 import com.example.eduspace.security.authentication.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -46,5 +51,37 @@ public class FollowController {
         return ResponseEntity.ok(
                 ApiResponse.<FollowStats>builder().success(true).message("Stats fetched.")
                         .data(followService.getStats(userId)).build());
+    }
+
+    @GetMapping("/{userId}/followers")
+    public ResponseEntity<ApiResponse<Page<FollowedUserResponse>>> getFollowers(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String userId,
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        if (!userDetails.user().getId().equals(userId)) {
+            throw new ForbiddenException("You can only view your own followers list.");
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.<Page<FollowedUserResponse>>builder()
+                        .success(true).message("Followers fetched.")
+                        .data(followService.getFollowers(userId, pageable)).build());
+    }
+
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<ApiResponse<Page<FollowedUserResponse>>> getFollowing(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String userId,
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        if (!userDetails.user().getId().equals(userId)) {
+            throw new ForbiddenException("You can only view your own following list.");
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.<Page<FollowedUserResponse>>builder()
+                        .success(true).message("Following fetched.")
+                        .data(followService.getFollowing(userId, pageable)).build());
     }
 }
