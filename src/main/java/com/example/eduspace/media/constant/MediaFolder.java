@@ -5,5 +5,8 @@ public enum MediaFolder {
     COVER,
     RESUME,
     CERTIFICATE,
-    SELFIE
+    SELFIE,
+    POST_IMAGE,
+    POST_VIDEO,
+    POST_DOCUMENT
 }
