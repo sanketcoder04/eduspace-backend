@@ -50,12 +50,22 @@ public class SecurityConfig {
                         UsernamePasswordAuthenticationFilter.class
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/v1/auth/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/ws/**"
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/verify-email",
+                                "/api/v1/auth/resend-otp",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/verify-password-reset-otp",
+                                "/api/v1/auth/reset-password",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/auth/google",
+                                "/api/v1/auth/google/complete-registration"
                         ).permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/ws/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/profile/teacher/view/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/profile/student/view/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/*/summary").authenticated()
                         .requestMatchers("/api/v1/profile/teacher/**").hasRole("TEACHER")
                         .requestMatchers("/api/v1/profile/student/**").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.POST, "/api/v1/opportunities/teaching-openings").hasRole("TEACHER")

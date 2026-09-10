@@ -254,4 +254,15 @@ public class TeacherProfileController {
                         .build()
         );
     }
+
+    @GetMapping("/view/{userId}")
+    public ResponseEntity<ApiResponse<TeacherProfileResponse>> viewProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable String userId) {
+
+        TeacherProfileResponse response = teacherProfileService.getProfileForViewing(userDetails.user(), userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<TeacherProfileResponse>builder()
+                        .success(true).message("Profile fetched.").data(response).build());
+    }
 }

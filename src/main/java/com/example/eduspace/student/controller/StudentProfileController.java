@@ -166,4 +166,15 @@ public class StudentProfileController {
                         .build()
         );
     }
+
+    @GetMapping("/view/{userId}")
+    public ResponseEntity<ApiResponse<StudentProfileResponse>> viewProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable String userId) {
+
+        StudentProfileResponse response = studentProfileService.getProfileForViewing(userDetails.user(), userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<StudentProfileResponse>builder()
+                        .success(true).message("Profile fetched.").data(response).build());
+    }
 }
