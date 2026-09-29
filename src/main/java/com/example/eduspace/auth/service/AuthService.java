@@ -177,11 +177,11 @@ public class AuthService {
     }
 
     public GenericMessageResponse forgotPassword(ForgotPasswordRequest request) {
-        userRepository.findByEmail(request.getEmail())
-                .ifPresent(user -> {
-                    String otp = verificationTokenService.createPasswordResetToken(user);
-                    emailService.sendPasswordResetOtp(user.getEmail(), user.getName(), otp);
-        });
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Invalid Email."));
+
+        String otp = verificationTokenService.createPasswordResetToken(user);
+        emailService.sendPasswordResetOtp(user.getEmail(), user.getName(), otp);
 
         return GenericMessageResponse.builder()
                 .message("If an account exists with this email, a password reset OTP has been sent.")

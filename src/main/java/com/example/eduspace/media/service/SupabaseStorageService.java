@@ -40,7 +40,6 @@ public class SupabaseStorageService implements StorageService {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(objectEndpoint(key)))
                     .header("Authorization", "Bearer " + storageProperties.getServiceRoleKey())
-                    .header("apikey", storageProperties.getServiceRoleKey())
                     .header("Content-Type", file.getContentType())
                     .PUT(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
                     .build();
@@ -76,7 +75,6 @@ public class SupabaseStorageService implements StorageService {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(objectEndpoint(key)))
                     .header("Authorization", "Bearer " + storageProperties.getServiceRoleKey())
-                    .header("apikey", storageProperties.getServiceRoleKey())
                     .DELETE()
                     .build();
 
@@ -109,7 +107,9 @@ public class SupabaseStorageService implements StorageService {
     }
 
     private String extractExtension(String originalFilename) {
-        if (originalFilename == null || !originalFilename.contains(".")) return "";
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            return "";
+        }
         return originalFilename.substring(originalFilename.lastIndexOf('.'));
     }
 }

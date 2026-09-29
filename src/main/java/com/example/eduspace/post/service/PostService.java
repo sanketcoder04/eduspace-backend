@@ -4,6 +4,7 @@ import com.example.eduspace.common.service.ProfileLookupService;
 import com.example.eduspace.exception.BadRequestException;
 import com.example.eduspace.exception.ForbiddenException;
 import com.example.eduspace.exception.ResourceNotFoundException;
+import com.example.eduspace.follow.entity.Follow;
 import com.example.eduspace.follow.repository.FollowRepository;
 import com.example.eduspace.notification.enums.NotificationType;
 import com.example.eduspace.notification.service.NotificationService;
@@ -83,7 +84,7 @@ public class PostService {
     /** Personalized feed: the author's own posts + everyone they follow, newest first — pure chronological for MVP, no ranking algorithm. */
     public Page<PostResponse> getFeed(User viewer, Pageable pageable) {
         List<String> followingIds = followRepository.findByFollowerId(viewer.getId()).stream()
-                .map(f -> f.getFollowingId())
+                .map(Follow::getFollowingId)
                 .collect(Collectors.toList());
         followingIds.add(viewer.getId());
 
