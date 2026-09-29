@@ -2,6 +2,7 @@ package com.example.eduspace.teacher.service;
 
 import com.example.eduspace.common.dto.SubmitVerificationRequest;
 import com.example.eduspace.common.entity.Certificate;
+import com.example.eduspace.common.entity.Education;
 import com.example.eduspace.common.entity.ProfileVerification;
 import com.example.eduspace.common.enums.VerificationStatus;
 import com.example.eduspace.exception.ResourceNotFoundException;
@@ -56,13 +57,13 @@ public class TeacherProfileService {
     public TeacherProfileResponse updateEducation(User user, List<EducationDto> educationDtos) {
         TeacherProfile profile = getOrCreateProfile(user);
 
-        List<com.example.eduspace.common.entity.Education> education = mapper.toEducationList(educationDtos);
+        List<Education> education = mapper.toEducationList(educationDtos);
+
         education.forEach(entry -> {
             if (entry.getId() == null || entry.getId().isBlank()) {
                 entry.setId(UUID.randomUUID().toString());
             }
         });
-
         profile.setEducation(education);
 
         return save(profile, user);
@@ -86,10 +87,10 @@ public class TeacherProfileService {
     }
 
     public TeacherProfileResponse updateSubjectOffering(User user, String subjectId, UpdateSubjectOfferingRequest request) {
-
         TeacherProfile profile = getOrCreateProfile(user);
 
         List<SubjectOffering> offerings = new ArrayList<>(profile.getSubjectOfferings());
+
         SubjectOffering existing = offerings.stream()
                 .filter(o -> o.getId().equals(subjectId))
                 .findFirst()
@@ -113,7 +114,6 @@ public class TeacherProfileService {
         if (!removed) {
             throw new ResourceNotFoundException("Subject offering not found.");
         }
-
         profile.setSubjectOfferings(offerings);
 
         return save(profile, user);

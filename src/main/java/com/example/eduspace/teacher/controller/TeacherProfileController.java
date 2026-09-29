@@ -263,6 +263,9 @@ public class TeacherProfileController {
 
         return ResponseEntity.ok(
                 ApiResponse.<TeacherProfileResponse>builder()
-                        .success(true).message("Profile fetched.").data(response).build());
+                        .success(true)
+                        .message("Profile fetched.")
+                        .data(response)
+                        .build());
     }
 }
