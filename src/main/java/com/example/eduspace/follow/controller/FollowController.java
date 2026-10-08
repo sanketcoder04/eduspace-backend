@@ -3,6 +3,7 @@ package com.example.eduspace.follow.controller;
 import com.example.eduspace.common.dto.ApiResponse;
 import com.example.eduspace.exception.ForbiddenException;
 import com.example.eduspace.follow.dto.response.FollowedUserResponse;
+import com.example.eduspace.follow.dto.response.RecommendedProfileResponse;
 import com.example.eduspace.follow.entity.FollowStats;
 import com.example.eduspace.follow.service.FollowService;
 import com.example.eduspace.security.authentication.CustomUserDetails;
@@ -13,6 +14,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/follows")
@@ -83,5 +86,16 @@ public class FollowController {
                 ApiResponse.<Page<FollowedUserResponse>>builder()
                         .success(true).message("Following fetched.")
                         .data(followService.getFollowing(userId, pageable)).build());
+    }
+
+    @GetMapping("/recommendations")
+    public ResponseEntity<ApiResponse<List<RecommendedProfileResponse>>> getRecommendations(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "5") int limit) {
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<RecommendedProfileResponse>>builder()
+                        .success(true).message("Recommendations fetched.")
+                        .data(followService.getRecommendations(userDetails.user(), limit)).build());
     }
 }

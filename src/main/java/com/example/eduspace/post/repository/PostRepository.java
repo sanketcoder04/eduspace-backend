@@ -14,4 +14,6 @@ public interface PostRepository extends MongoRepository<Post, String> {
     Page<Post> findByAuthorIdIn(List<String> authorIds, Pageable pageable);
 
     Page<Post> findByMentionsContaining(String userId, Pageable pageable);
+
+    long countByAuthorId(String authorId);
 }

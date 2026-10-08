@@ -154,6 +154,10 @@ public class PostService {
         postRepository.save(post);
     }
 
+    public long getPostsCount(String authorId) {
+        return postRepository.countByAuthorId(authorId);
+    }
+
     private void validateContentForType(CreatePostRequest request, String sanitizedContent) {
         switch (request.getType()) {
             case TEXT -> {

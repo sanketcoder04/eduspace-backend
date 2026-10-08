@@ -4,6 +4,7 @@ import com.example.eduspace.common.service.ProfileLookupService;
 import com.example.eduspace.exception.BadRequestException;
 import com.example.eduspace.exception.ResourceNotFoundException;
 import com.example.eduspace.follow.dto.response.FollowedUserResponse;
+import com.example.eduspace.follow.dto.response.RecommendedProfileResponse;
 import com.example.eduspace.follow.entity.Follow;
 import com.example.eduspace.follow.entity.FollowStats;
 import com.example.eduspace.follow.repository.FollowRepository;
@@ -14,9 +15,14 @@ import com.example.eduspace.user.entity.User;
 import com.example.eduspace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -86,6 +92,27 @@ public class FollowService {
     public Page<FollowedUserResponse> getFollowing(String userId, Pageable pageable) {
         return followRepository.findByFollowerId(userId, pageable)
                 .map(follow -> toFollowedUserResponse(follow.getFollowingId(), follow.getCreatedAt()));
+    }
+
+    public List<RecommendedProfileResponse> getRecommendations(User viewer, int limit) {
+        List<String> alreadyFollowing = followRepository.findByFollowerId(viewer.getId()).stream()
+                .map(Follow::getFollowingId)
+                .collect(Collectors.toList());
+        alreadyFollowing.add(viewer.getId());
+
+        return userRepository
+                .findByIdNotIn(alreadyFollowing, PageRequest.of(0, limit, Sort.by("createdAt").descending()))
+                .stream()
+                .map(user -> {
+                    var summary = profileLookupService.getSummary(user.getId());
+                    return RecommendedProfileResponse.builder()
+                            .userId(user.getId())
+                            .name(summary.name())
+                            .avatarUrl(summary.avatarUrl())
+                            .role(user.getRole())
+                            .build();
+                })
+                .toList();
     }
 
     private void adjustStats(String userId, String field, int delta) {
