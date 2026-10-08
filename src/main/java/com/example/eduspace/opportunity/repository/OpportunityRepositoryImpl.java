@@ -4,6 +4,7 @@ import com.example.eduspace.opportunity.dto.request.OpportunityFilterRequest;
 import com.example.eduspace.opportunity.entity.Opportunity;
 import com.example.eduspace.opportunity.enums.OpportunityStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -26,14 +27,8 @@ public class OpportunityRepositoryImpl implements OpportunityRepositoryCustom {
     public Page<Opportunity> search(OpportunityFilterRequest filter, Pageable pageable) {
         List<Criteria> criteriaList = new ArrayList<>();
 
-        // Public feed only ever shows postings still accepting applicants,
-        // unless the caller explicitly asks for a specific status (e.g. the
-        // "my posts" view wants to see CLOSED ones too).
         if (filter.getStatuses() != null && !filter.getStatuses().isEmpty()) {
             criteriaList.add(Criteria.where("status").in(filter.getStatuses()));
-        } else {
-            criteriaList.add(Criteria.where("status")
-                    .in(OpportunityStatus.OPEN, OpportunityStatus.PARTIALLY_FILLED));
         }
 
         if (filter.getPostType() != null) {

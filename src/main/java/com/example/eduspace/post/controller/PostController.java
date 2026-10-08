@@ -87,4 +87,12 @@ public class PostController {
                         .success(true).message("Vote recorded.")
                         .data(postService.voteOnPoll(userDetails.user(), id, request.getSelectedOptionIds())).build());
     }
+
+    @GetMapping("/user/{userId}/count")
+    public ResponseEntity<ApiResponse<Long>> getCountByUser(@PathVariable String userId) {
+        return ResponseEntity.ok(
+                ApiResponse.<Long>builder()
+                        .success(true).message("Posts count fetched.")
+                        .data(postService.getPostsCount(userId)).build());
+    }
 }
