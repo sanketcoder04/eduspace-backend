@@ -1,7 +1,9 @@
 package com.example.eduspace.follow.controller;
 
 import com.example.eduspace.common.dto.ApiResponse;
+import com.example.eduspace.common.dto.SliceResponse;
 import com.example.eduspace.exception.ForbiddenException;
+import com.example.eduspace.follow.dto.response.DiscoverableUserResponse;
 import com.example.eduspace.follow.dto.response.FollowedUserResponse;
 import com.example.eduspace.follow.dto.response.RecommendedProfileResponse;
 import com.example.eduspace.follow.entity.FollowStats;
@@ -97,5 +99,18 @@ public class FollowController {
                 ApiResponse.<List<RecommendedProfileResponse>>builder()
                         .success(true).message("Recommendations fetched.")
                         .data(followService.getRecommendations(userDetails.user(), limit)).build());
+    }
+
+    @GetMapping("/discover")
+    public ResponseEntity<ApiResponse<SliceResponse<DiscoverableUserResponse>>> discover(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) Integer size) {
+
+        return ResponseEntity.ok(
+                ApiResponse.<SliceResponse<DiscoverableUserResponse>>builder()
+                        .success(true).message("Search results fetched.")
+                        .data(followService.discover(userDetails.user(), query, page, size)).build());
     }
 }

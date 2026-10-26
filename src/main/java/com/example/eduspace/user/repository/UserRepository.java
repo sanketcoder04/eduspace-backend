@@ -1,10 +1,9 @@
 package com.example.eduspace.user.repository;
 
 import com.example.eduspace.user.entity.User;
-
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.mongodb.repository.MongoRepository;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -13,7 +12,7 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     boolean existsByEmail(String email);
 
-    List<User> findTop8ByNameContainingIgnoreCaseAndIdNot(String namePart, String excludeId);
+    Slice<User> findByNameContainingIgnoreCaseAndIdNot(String namePart, String excludeId, Pageable pageable);
 
     List<User> findByIdNotIn(List<String> excludedIds, Pageable pageable);
 }

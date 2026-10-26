@@ -18,6 +18,8 @@ public class UserController {
 
     private final UserService userService;
 
+    private static final int MENTION_SUGGESTION_LIMIT = 8;
+
     @GetMapping("/{userId}/summary")
     public ResponseEntity<ApiResponse<UserSummaryResponse>> getSummary(@PathVariable String userId) {
         return ResponseEntity.ok(
@@ -34,6 +36,7 @@ public class UserController {
         return ResponseEntity.ok(
                 ApiResponse.<List<UserSummaryResponse>>builder()
                         .success(true).message("Search results fetched.")
-                        .data(userService.searchUsers(query, userDetails.user().getId())).build());
+                        .data(userService.searchUsers(query, userDetails.user().getId(), MENTION_SUGGESTION_LIMIT))
+                        .build());
     }
 }
