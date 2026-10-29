@@ -1,6 +1,8 @@
 package com.example.eduspace.post.controller;
 
 import com.example.eduspace.common.dto.ApiResponse;
+import com.example.eduspace.common.dto.SliceResponse;
+import com.example.eduspace.post.dto.response.LikerResponse;
 import com.example.eduspace.post.enums.LikeTargetType;
 import com.example.eduspace.post.service.LikeService;
 import com.example.eduspace.security.authentication.CustomUserDetails;
@@ -34,5 +36,18 @@ public class LikeController {
 
         return ResponseEntity.ok(
                 ApiResponse.<Boolean>builder().success(true).message("Like toggled.").data(nowLiked).build());
+    }
+
+    @GetMapping("/posts/{id}/likes")
+    public ResponseEntity<ApiResponse<SliceResponse<LikerResponse>>> getPostLikers(
+            @PathVariable String id,
+            @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) Integer size) {
+
+        return ResponseEntity.ok(
+                ApiResponse.<SliceResponse<LikerResponse>>builder()
+                        .success(true).message("Likes fetched.")
+                        .data(likeService.getPostLikers(id, query, page, size)).build());
     }
 }
