@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Repository
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class OpportunityRepositoryImpl implements OpportunityRepositoryCustom {
     private final MongoTemplate mongoTemplate;
 
     @Override
-    public Page<Opportunity> search(OpportunityFilterRequest filter, Pageable pageable) {
+    public Page<Opportunity> search(OpportunityFilterRequest filter, String keyword, List<String> keywordAuthorIds, Pageable pageable) {
         List<Criteria> criteriaList = new ArrayList<>();
 
         if (filter.getStatuses() != null && !filter.getStatuses().isEmpty()) {
@@ -64,6 +65,19 @@ public class OpportunityRepositoryImpl implements OpportunityRepositoryCustom {
 
         if (filter.getAuthorId() != null) {
             criteriaList.add(Criteria.where("authorId").is(filter.getAuthorId()));
+        }
+
+        if (keyword != null) {
+            // Pattern.quote makes the user's text literal, never a regex.
+            String pattern = Pattern.quote(keyword);
+            List<Criteria> anyOf = new ArrayList<>();
+            for (String field : List.of("title", "description", "subjects", "gradeLevel", "board", "location.city")) {
+                anyOf.add(Criteria.where(field).regex(pattern, "i")); // on an array field, matches any element
+            }
+            if (!keywordAuthorIds.isEmpty()) {
+                anyOf.add(Criteria.where("authorId").in(keywordAuthorIds));
+            }
+            criteriaList.add(new Criteria().orOperator(anyOf.toArray(new Criteria[0])));
         }
 
         Query query = new Query();

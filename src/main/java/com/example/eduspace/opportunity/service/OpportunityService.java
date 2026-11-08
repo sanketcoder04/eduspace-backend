@@ -17,6 +17,7 @@ import com.example.eduspace.opportunity.repository.OpportunityRepository;
 import com.example.eduspace.teacher.entity.TeacherProfile;
 import com.example.eduspace.teacher.repository.TeacherRepository;
 import com.example.eduspace.user.entity.User;
+import com.example.eduspace.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,12 @@ public class OpportunityService {
     private final OpportunityMapper mapper;
 
     private final ProfileLookupService profileLookupService;
+
+    private final UserService userService;
+
+    private static final int KEYWORD_MIN_LENGTH = 2;
+    private static final int KEYWORD_MAX_LENGTH = 100;
+    private static final int KEYWORD_AUTHOR_LIMIT = 50;
 
     public OpportunityResponse createTeachingOpening(User author, CreateTeachingOpeningRequest request) {
         if (author.getRole() != Role.TEACHER) {
@@ -84,7 +91,19 @@ public class OpportunityService {
     }
 
     public Page<OpportunityResponse> search(OpportunityFilterRequest filter, Pageable pageable) {
-        return opportunityRepository.search(filter, pageable).map(this::enrich);
+        String keyword = filter.getKeyword() == null ? "" : filter.getKeyword().trim();
+
+        if (keyword.length() > KEYWORD_MAX_LENGTH) {
+            throw new BadRequestException("Search text is too long.");
+        }
+        // One-letter searches would scan everything for no useful result.
+        String effectiveKeyword = keyword.length() >= KEYWORD_MIN_LENGTH ? keyword : null;
+
+        List<String> keywordAuthorIds = effectiveKeyword == null
+                ? List.of()
+                : userService.findUserIdsByNameContaining(effectiveKeyword, KEYWORD_AUTHOR_LIMIT);
+
+        return opportunityRepository.search(filter, effectiveKeyword, keywordAuthorIds, pageable).map(this::enrich);
     }
 
     public OpportunityResponse getById(String id) {

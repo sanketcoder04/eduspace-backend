@@ -32,4 +32,6 @@ public class OpportunityFilterRequest {
     private List<OpportunityStatus> statuses; // used by "my posts" view; feed defaults to OPEN/PARTIALLY_FILLED
 
     private String authorId;               // used by "my posts" view
+
+    private String keyword;
 }

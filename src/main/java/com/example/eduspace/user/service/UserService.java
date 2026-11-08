@@ -69,4 +69,12 @@ public class UserService {
                 .avatarUrl(avatarUrl)
                 .build();
     }
+
+    public List<String> findUserIdsByNameContaining(String namePart, int limit) {
+        return userRepository
+                .findByNameContainingIgnoreCase(namePart, PageRequest.of(0, limit, SEARCH_SORT))
+                .getContent().stream()
+                .map(User::getId)
+                .toList();
+    }
 }

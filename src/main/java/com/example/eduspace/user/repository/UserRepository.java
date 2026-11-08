@@ -15,4 +15,6 @@ public interface UserRepository extends MongoRepository<User, String> {
     Slice<User> findByNameContainingIgnoreCaseAndIdNot(String namePart, String excludeId, Pageable pageable);
 
     List<User> findByIdNotIn(List<String> excludedIds, Pageable pageable);
+
+    Slice<User> findByNameContainingIgnoreCase(String namePart, Pageable pageable);
 }
