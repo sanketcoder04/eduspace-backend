@@ -25,6 +25,8 @@ public class ApplicationResponse {
 
     private String authorId;
 
+    private String authorName;
+
     private String message;
 
     private ApplicationStatus status;

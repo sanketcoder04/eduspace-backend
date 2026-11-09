@@ -1,9 +1,11 @@
 package com.example.eduspace.application.service;
 
+import com.example.eduspace.application.dto.request.ApplicationSearchRequest;
 import com.example.eduspace.application.dto.request.ContactShareConsentRequest;
 import com.example.eduspace.application.dto.response.ApplicationResponse;
 import com.example.eduspace.application.entity.Application;
 import com.example.eduspace.application.entity.ContactShareConsent;
+import com.example.eduspace.application.enums.ApplicationSort;
 import com.example.eduspace.application.enums.ApplicationStatus;
 import com.example.eduspace.application.mapper.ApplicationMapper;
 import com.example.eduspace.application.repository.ApplicationRepository;
@@ -21,8 +23,10 @@ import com.example.eduspace.opportunity.enums.OpportunityStatus;
 import com.example.eduspace.opportunity.enums.PostType;
 import com.example.eduspace.opportunity.service.OpportunityService;
 import com.example.eduspace.user.entity.User;
+import com.example.eduspace.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,11 +39,23 @@ import java.util.List;
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
+
     private final OpportunityService opportunityService;
+
     private final ChatService chatService;
+
     private final NotificationService notificationService;
+
     private final ApplicationMapper mapper;
+
     private final ProfileLookupService profileLookupService;
+
+    private final UserService userService;
+
+    private static final int KEYWORD_MIN_LENGTH = 2;
+    private static final int KEYWORD_MAX_LENGTH = 100;
+    private static final int KEYWORD_MATCH_LIMIT = 200;
+    private static final int SEARCH_MAX_PAGE_SIZE = 50;
 
     private static final List<ApplicationStatus> ACTIVE_STATUSES =
             List.of(ApplicationStatus.PENDING, ApplicationStatus.IN_DISCUSSION, ApplicationStatus.APPROVED);
@@ -274,11 +290,6 @@ public class ApplicationService {
                 .map(app -> enrich(app, resolveTitleSafely(app)));
     }
 
-    public Application getEntity(String id) {
-        return applicationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Application not found."));
-    }
-
     private void fillSeat(Opportunity opportunity) {
         if (opportunity.getClassFormat() == ClassFormat.PERSONALIZED) {
             opportunity.setStatus(OpportunityStatus.CLOSED);
@@ -319,13 +330,38 @@ public class ApplicationService {
         response.setApplicantName(applicant.name());
         response.setApplicantAvatarUrl(applicant.avatarUrl());
 
+        response.setAuthorName(profileLookupService.getSummary(application.getAuthorId()).name());
+
         var consent = response.getContactShareConsent();
         if (consent.isPhoneShared() || consent.isEmailShared()) {
             ProfileLookupService.ContactInfo contact = profileLookupService.getContactInfo(application.getAuthorId());
             if (consent.isPhoneShared()) consent.setPhoneNumber(contact.phoneNumber());
             if (consent.isEmailShared()) consent.setEmail(contact.email());
         }
-
         return response;
+    }
+
+    public Page<ApplicationResponse> search(User user, ApplicationSearchRequest request, int page, int size) {
+        String keyword = request.getKeyword() == null ? "" : request.getKeyword().trim();
+        if (keyword.length() > KEYWORD_MAX_LENGTH) {
+            throw new BadRequestException("Search text is too long.");
+        }
+        // One-letter searches would scan everything for no useful result.
+        String effectiveKeyword = keyword.length() >= KEYWORD_MIN_LENGTH ? keyword : null;
+
+        List<String> matchedOpportunityIds = effectiveKeyword == null
+                ? List.of()
+                : opportunityService.findIdsByTitleContaining(effectiveKeyword, KEYWORD_MATCH_LIMIT);
+        List<String> matchedUserIds = effectiveKeyword == null
+                ? List.of()
+                : userService.findUserIdsByNameContaining(effectiveKeyword, KEYWORD_MATCH_LIMIT);
+
+        ApplicationSort sort = request.getSort() == null ? ApplicationSort.NEWEST : request.getSort();
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0), Math.min(Math.max(size, 1), SEARCH_MAX_PAGE_SIZE), sort.getSort());
+
+        return applicationRepository
+                .search(user.getId(), request, effectiveKeyword, matchedOpportunityIds, matchedUserIds, pageable)
+                .map(app -> enrich(app, resolveTitleSafely(app)));
     }
 }

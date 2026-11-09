@@ -20,6 +20,7 @@ import com.example.eduspace.user.entity.User;
 import com.example.eduspace.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -204,5 +205,14 @@ public class OpportunityService {
                             + ". Add them to your profile before posting."
             );
         }
+    }
+
+    /** IDs of postings whose title contains `titlePart`. Capped, since it only feeds an "any of these postings" match. */
+    public List<String> findIdsByTitleContaining(String titlePart, int limit) {
+        return opportunityRepository
+                .findByTitleContainingIgnoreCase(titlePart, PageRequest.of(0, limit))
+                .getContent().stream()
+                .map(Opportunity::getId)
+                .toList();
     }
 }
