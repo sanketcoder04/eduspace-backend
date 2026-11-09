@@ -141,4 +141,20 @@ public class ApplicationController {
                         .build()
         );
     }
+
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<Page<ApplicationResponse>>> search(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody ApplicationSearchRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(
+                ApiResponse.<Page<ApplicationResponse>>builder()
+                        .success(true)
+                        .message("Applications fetched.")
+                        .data(applicationService.search(userDetails.user(), request, page, size))
+                        .build()
+        );
+    }
 }

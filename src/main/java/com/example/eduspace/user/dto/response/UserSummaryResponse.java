@@ -18,5 +18,7 @@ public class UserSummaryResponse {
 
     private Role role;
 
+    private String avatarUrl;
+
     private Instant lastLoginAt;
 }

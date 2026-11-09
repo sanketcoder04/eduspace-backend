@@ -1,8 +1,10 @@
 package com.example.eduspace.follow.service;
 
+import com.example.eduspace.common.dto.SliceResponse;
 import com.example.eduspace.common.service.ProfileLookupService;
 import com.example.eduspace.exception.BadRequestException;
 import com.example.eduspace.exception.ResourceNotFoundException;
+import com.example.eduspace.follow.dto.response.DiscoverableUserResponse;
 import com.example.eduspace.follow.dto.response.FollowedUserResponse;
 import com.example.eduspace.follow.dto.response.RecommendedProfileResponse;
 import com.example.eduspace.follow.entity.Follow;
@@ -11,17 +13,17 @@ import com.example.eduspace.follow.repository.FollowRepository;
 import com.example.eduspace.follow.repository.FollowStatsRepository;
 import com.example.eduspace.notification.enums.NotificationType;
 import com.example.eduspace.notification.service.NotificationService;
+import com.example.eduspace.user.dto.response.UserSummaryResponse;
 import com.example.eduspace.user.entity.User;
 import com.example.eduspace.user.repository.UserRepository;
+import com.example.eduspace.user.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +39,13 @@ public class FollowService {
     private final NotificationService notificationService;
 
     private final ProfileLookupService profileLookupService;
+
+    private final UserService userService;
+
+    private static final int DISCOVER_MIN_QUERY_LENGTH = 2;
+    private static final int DISCOVER_MAX_QUERY_LENGTH = 100;
+    private static final int DISCOVER_DEFAULT_PAGE_SIZE = 8;
+    private static final int DISCOVER_MAX_PAGE_SIZE = 20;
 
     @Transactional
     public void follow(User follower, String targetUserId) {
@@ -139,5 +148,47 @@ public class FollowService {
                 .role(role)
                 .followedAt(followedAt)
                 .build();
+    }
+
+    public SliceResponse<DiscoverableUserResponse> discover(User viewer, String query, int page, Integer requestedSize) {
+        String trimmed = query == null ? "" : query.trim();
+
+        if (trimmed.length() > DISCOVER_MAX_QUERY_LENGTH) {
+            throw new BadRequestException("Search text is too long.");
+        }
+
+        int size = requestedSize == null
+                ? DISCOVER_DEFAULT_PAGE_SIZE
+                : Math.min(Math.max(requestedSize, 1), DISCOVER_MAX_PAGE_SIZE);
+
+        int safePage = Math.max(page, 0);
+
+        if (trimmed.length() < DISCOVER_MIN_QUERY_LENGTH) {
+            return SliceResponse.empty(safePage, size);
+        }
+
+        Slice<UserSummaryResponse> matches = userService.searchUsersPage(trimmed, viewer.getId(), safePage, size);
+
+        if (!matches.hasContent()) {
+            return new SliceResponse<>(List.of(), safePage, size, matches.hasNext());
+        }
+
+        Set<String> followedIds = followRepository
+                .findByFollowerIdAndFollowingIdIn(viewer.getId(), matches.getContent().stream().map(UserSummaryResponse::getId).toList())
+                .stream()
+                .map(Follow::getFollowingId)
+                .collect(Collectors.toSet());
+
+        List<DiscoverableUserResponse> content = matches.getContent().stream()
+                .map(match -> DiscoverableUserResponse.builder()
+                        .userId(match.getId())
+                        .name(match.getName())
+                        .avatarUrl(match.getAvatarUrl())
+                        .role(match.getRole())
+                        .following(followedIds.contains(match.getId()))
+                        .build())
+                .toList();
+
+        return new SliceResponse<>(content, safePage, size, matches.hasNext());
     }
 }
